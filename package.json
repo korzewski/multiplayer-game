@@ -4,9 +4,7 @@
   "description": "",
   "main": "gulp.js",
   "dependencies": {
-    "gulp-babel": "^5.2.1"
-  },
-  "devDependencies": {
+    "gulp-babel": "^5.2.1",
     "babelify": "^6.3.0",
     "browserify": "^11.2.0",
     "express": "^4.13.3",
@@ -24,7 +22,7 @@
     "watchify": "^3.4.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
   "author": "",
   "license": "ISC"
