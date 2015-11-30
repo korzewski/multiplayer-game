@@ -4,7 +4,7 @@ var PeerServer = require('peer').PeerServer;
 
 app.use(express.static( __dirname + '/build' ));
 
-var expressServer = app.listen(3001);
+var expressServer = app.listen(5000);
 var io = require('socket.io').listen(expressServer);
 
 var peerServer = new PeerServer({ port: 9000, path: '/multiplayer' });
