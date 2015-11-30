@@ -8,11 +8,11 @@ app.use(express.static( __dirname + '/build' ));
 
 console.log('server is running!');
 
-app.listen(app.get('port'), function() {
-    console.log('Node app is running on port', app.get('port'));
-});
+//app.listen(app.get('port'), function() {
+//    console.log('Node app is running on port', app.get('port'));
+//});
 
-//var expressServer = app.listen(5000);
+var expressServer = app.listen(5000);
 //var io = require('socket.io').listen(expressServer);
 
 //var peerServer = new PeerServer({ port: 9000, path: '/multiplayer' });
