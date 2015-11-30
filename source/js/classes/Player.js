@@ -9,6 +9,9 @@ export default class Player extends Phaser.Sprite{
         this.cursors = this.game.input.keyboard.createCursorKeys();
         this.anchor.setTo(0.5, 0.5);
         this.game.add.existing(this);
+
+        //this.onlineLatencyMax = 100;
+        //this.onlineLatency = this.onlineLatencyMax;
     }
 
     update(){
@@ -29,5 +32,16 @@ export default class Player extends Phaser.Sprite{
             this.body.velocity.y -= this.speed;
         }
 
+        this.onlineUpdate();
+    }
+
+    onlineUpdate(){
+        //if(--this.onlineLatency < 0){
+        //    this.onlineLatency = this.onlineLatencyMax;
+            GLOBAL.manager.broadcast({
+                posX: parseInt(this.position.x),
+                posY: parseInt(this.position.y)
+            });
+        //}
     }
 }

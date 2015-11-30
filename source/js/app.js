@@ -1,9 +1,5 @@
 import Level1 from './classes/Level1'
-
-var GLOBAL = {
-    width: 500,
-    height: 500
-};
+import Manager from './classes/Manager';
 
 class Init extends Phaser.Game {
     constructor() {
@@ -50,8 +46,11 @@ class Preloader extends Phaser.State{
     }
 
     create(){
+        GLOBAL.game = this.game;
+        GLOBAL.manager = new Manager();
         this.game.state.start('Level1');
     }
+
 }
 
 new Init();

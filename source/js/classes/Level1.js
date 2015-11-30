@@ -1,4 +1,5 @@
 import Player from './Player';
+import PeerPlayer from './PeerPlayer';
 
 export default class Level1 extends Phaser.State{
     create(){
@@ -17,12 +18,36 @@ export default class Level1 extends Phaser.State{
         this.player = new Player(this.game, 80, 100, 'player');
         this.game.camera.follow(this.player);
 
+        this.connectedPlayers = {};
+
         this.scores = 0;
         this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
         this.scoresLabel = this.game.add.text(0, 0, 'scores: 0', this.textStyle);
         this.scoresLabel.fixedToCamera = true;
         this.scoresLabel.cameraOffset.setTo(10, 10);
+
+        this.game.events.onUserConnected.add(this.onUserConnected, this);
+        this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
+
     }
+
+    onUserConnected(conn){
+        if(conn.peer != GLOBAL.manager.nickname){
+            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn);
+            console.log('connectedPlayers: ', this.connectedPlayers);
+        } else {
+
+        }
+    }
+
+    onUserDataUpdate(peerName, data){
+        //console.log('onUserDataUpdate peerName: ', peerName);
+        //console.log('onUserDataUpdate data: ', data);
+        //
+        //console.log('this.connectedPlayers: ', this.connectedPlayers);
+        this.connectedPlayers[peerName].updatePosition(data);
+    }
+
 
     update(){
         this.game.physics.arcade.collide(this.player, this.blockedLayer);
