@@ -2,6 +2,8 @@ var express = require('express');
 var app = express();
 var PeerServer = require('peer').PeerServer;
 
+app.set('port', (process.env.PORT || 5000));
+
 app.use(express.static( __dirname + '/build' ));
 
 var expressServer = app.listen(5000);
