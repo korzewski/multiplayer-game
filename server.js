@@ -1,6 +1,6 @@
 var express = require('express');
 var app = express();
-var PeerServer = require('peer').PeerServer;
+//var PeerServer = require('peer').PeerServer;
 
 app.set('port', (process.env.PORT || 5000));
 
