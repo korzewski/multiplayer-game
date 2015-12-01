@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 var PeerServer = require('peer').PeerServer;
+var path = require('path');
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -35,9 +36,7 @@ peerServer.on('disconnect', function(peerID){
 });
 
 app.get('/', function(req, res){
-	console.log('__dirname: ', __dirname + '/build/index.html');
-	console.log('express.static __dirname: ', express.static( __dirname + '/build/index.html' ));
-	res.sendFile(express.static( __dirname + '/build/index.html' ));
+	res.sendFile( path( '/build/index.html') );
 });
 
 app.get('/api/allConnectedPeers', function(req, res){
