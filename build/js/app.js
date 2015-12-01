@@ -16449,12 +16449,12 @@ var Manager = (function () {
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname XXX?');
+        this.nickname = prompt('your nickname?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 80, path: '/build' });
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build' });
         this.peer.on('connection', function (conn) {
             conn.on('open', function () {
                 conn.on('data', function (data) {

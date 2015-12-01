@@ -2,6 +2,22 @@ var express = require('express');
 var app = express();
 var PeerServer = require('peer').PeerServer;
 
+var allowCrossDomain = function(req, res, next) {
+	res.header('Access-Control-Allow-Origin', '*');
+	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+
+	// intercept OPTIONS method
+	if ('OPTIONS' == req.method) {
+		res.send(200);
+	}
+	else {
+		next();
+	}
+};
+
+app.use(allowCrossDomain);
+
 app.set('port', (process.env.PORT || 5000));
 
 app.use(express.static( __dirname + '/build' ));
@@ -10,10 +26,9 @@ var expressServer = app.listen(app.get('port'), function() {
     console.log('Node app is running on port', app.get('port'));
 });
 
-//var expressServer = app.listen( app.get('port') );
 var io = require('socket.io').listen(expressServer);
 
-var peerServer = new PeerServer({ port: 80, path: '/build' });
+var peerServer = new PeerServer({ port: 9000, path: '/build' });
 var allConnectedPeers = [];
 
 peerServer.on('connection', function(peerID){

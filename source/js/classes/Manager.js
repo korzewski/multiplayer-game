@@ -7,12 +7,12 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname XXX?');
+        this.nickname = prompt('your nickname?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 80, path: '/build'});
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build'});
         this.peer.on('connection', (conn) => {
             conn.on('open', () => {
                 conn.on('data', (data) => {
