@@ -35,7 +35,9 @@ peerServer.on('disconnect', function(peerID){
 });
 
 app.get('/', function(req, res){
-	res.sendFile(__dirname + '/build/index.html');
+	console.log('__dirname: ', __dirname + '/build/index.html');
+	console.log('express.static __dirname: ', express.static( __dirname + '/build/index.html' ));
+	res.sendFile(express.static( __dirname + '/build/index.html' ));
 });
 
 app.get('/api/allConnectedPeers', function(req, res){
