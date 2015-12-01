@@ -28,7 +28,7 @@ var expressServer = app.listen(app.get('port'), function() {
 
 var io = require('socket.io').listen(expressServer);
 
-var peerServer = new PeerServer({ port: 9000, path: '/build', proxied: true });
+var peerServer = new PeerServer({ port: 9000, path: '/build' });
 var allConnectedPeers = [];
 
 peerServer.on('connection', function(peerID){
