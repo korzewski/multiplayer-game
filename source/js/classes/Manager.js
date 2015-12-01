@@ -1,4 +1,4 @@
-var io = require('socket.io-client')();
+//var io = require('socket.io-client')();
 var $ = require('jquery');
 
 export default class Manager{
@@ -23,14 +23,14 @@ export default class Manager{
             });
         });
 
-        io.on('user-connected', (newUser) => {
-            console.log('user-connected: ', newUser);
-            this.connectWithNewPeer(newUser);
-        });
-
-        io.on('user-disconnected', (disconnectedUser) => {
-            console.log('disconnectedUser: ', disconnectedUser);
-        });
+        //io.on('user-connected', (newUser) => {
+        //    console.log('user-connected: ', newUser);
+        //    this.connectWithNewPeer(newUser);
+        //});
+        //
+        //io.on('user-disconnected', (disconnectedUser) => {
+        //    console.log('disconnectedUser: ', disconnectedUser);
+        //});
     }
 
     connectWithNewPeer(newUser){
