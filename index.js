@@ -1,7 +1,6 @@
 var express = require('express');
 var app = express();
 var PeerServer = require('peer').PeerServer;
-var path = require('path');
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -14,7 +13,7 @@ var expressServer = app.listen(app.get('port'), function() {
 //var expressServer = app.listen( app.get('port') );
 var io = require('socket.io').listen(expressServer);
 
-var peerServer = new PeerServer({ port: 9000, path: '/multiplayer' });
+var peerServer = new PeerServer({ port: 9000 });
 var allConnectedPeers = [];
 
 peerServer.on('connection', function(peerID){

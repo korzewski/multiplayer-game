@@ -16383,13 +16383,13 @@ var Level1 = (function (_Phaser$State) {
             if (conn.peer != GLOBAL.manager.nickname) {
                 this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 200, 100, 'player', conn);
                 console.log('connectedPlayers: ', this.connectedPlayers);
-            } else {}
+            }
         }
     }, {
         key: 'onUserDataUpdate',
         value: function onUserDataUpdate(peerName, data) {
             //console.log('onUserDataUpdate peerName: ', peerName);
-            //console.log('onUserDataUpdate data: ', data);
+            console.log('onUserDataUpdate data: ', data);
             //
             //console.log('this.connectedPlayers: ', this.connectedPlayers);
             this.connectedPlayers[peerName].updatePosition(data);
@@ -16454,7 +16454,8 @@ var Manager = (function () {
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/multiplayer' });
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000 });
+
         this.peer.on('connection', function (conn) {
             conn.on('open', function () {
                 conn.on('data', function (data) {
@@ -16466,6 +16467,7 @@ var Manager = (function () {
         });
 
         io.on('user-connected', function (newUser) {
+            console.log('user-connected: ', newUser);
             _this.connectWithNewPeer(newUser);
         });
 
@@ -16494,8 +16496,7 @@ var Manager = (function () {
         key: 'broadcast',
         value: function broadcast(data) {
             this.connectedPeers.forEach(function (peer, index) {
-                //console.log('sending data to peer: ', peer);
-                //data.peerName = this.nickname;
+                console.log('sending data to peer: ', peer);
                 peer.send(data);
             });
         }
@@ -16507,7 +16508,7 @@ var Manager = (function () {
             $.ajax({
                 url: '/api/allConnectedPeers',
                 success: function success(data) {
-                    //console.log('success: ', data);
+                    console.log('success: ', data);
                     data.forEach(function (peer) {
                         _this3.connectWithNewPeer(peer.peerID);
                     });

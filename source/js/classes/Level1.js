@@ -35,14 +35,12 @@ export default class Level1 extends Phaser.State{
         if(conn.peer != GLOBAL.manager.nickname){
             this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn);
             console.log('connectedPlayers: ', this.connectedPlayers);
-        } else {
-
         }
     }
 
     onUserDataUpdate(peerName, data){
         //console.log('onUserDataUpdate peerName: ', peerName);
-        //console.log('onUserDataUpdate data: ', data);
+        console.log('onUserDataUpdate data: ', data);
         //
         //console.log('this.connectedPlayers: ', this.connectedPlayers);
         this.connectedPlayers[peerName].updatePosition(data);

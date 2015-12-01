@@ -9,10 +9,12 @@ export default class Manager{
 
         this.nickname = prompt('your nickname?');
 
+
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/multiplayer'});
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000 });
+
         this.peer.on('connection', (conn) => {
             conn.on('open', () => {
                 conn.on('data', (data) => {
@@ -24,6 +26,7 @@ export default class Manager{
         });
 
         io.on('user-connected', (newUser) => {
+            console.log('user-connected: ', newUser);
             this.connectWithNewPeer(newUser);
         });
 
@@ -45,8 +48,7 @@ export default class Manager{
 
     broadcast(data){
         this.connectedPeers.forEach((peer, index) => {
-            //console.log('sending data to peer: ', peer);
-            //data.peerName = this.nickname;
+            console.log('sending data to peer: ', peer);
             peer.send(data);
         });
     }
@@ -55,7 +57,7 @@ export default class Manager{
         $.ajax({
             url: '/api/allConnectedPeers',
             success: (data) => {
-                //console.log('success: ', data);
+                console.log('success: ', data);
                 data.forEach((peer) => {
                     this.connectWithNewPeer(peer.peerID);
                 });
