@@ -9452,7 +9452,7 @@ var Manager = (function () {
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nicknameXxx?');
+        this.nickname = prompt('your nickname?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
@@ -9468,14 +9468,14 @@ var Manager = (function () {
             });
         });
 
-        io.on('user-connected', function (newUser) {
-            console.log('user-connected: ', newUser);
-            _this.connectWithNewPeer(newUser);
-        });
-
-        io.on('user-disconnected', function (disconnectedUser) {
-            console.log('disconnectedUser: ', disconnectedUser);
-        });
+        //io.on('user-connected', (newUser) => {
+        //    console.log('user-connected: ', newUser);
+        //    this.connectWithNewPeer(newUser);
+        //});
+        //
+        //io.on('user-disconnected', (disconnectedUser) => {
+        //    console.log('disconnectedUser: ', disconnectedUser);
+        //});
     }
 
     _createClass(Manager, [{

@@ -7,7 +7,7 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nicknameXxx?');
+        this.nickname = prompt('your nickname?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
@@ -22,7 +22,6 @@ export default class Manager{
                 });
             });
         });
-
 
         //io.on('user-connected', (newUser) => {
         //    console.log('user-connected: ', newUser);
