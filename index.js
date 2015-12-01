@@ -13,7 +13,7 @@ var expressServer = app.listen(app.get('port'), function() {
 //var expressServer = app.listen( app.get('port') );
 var io = require('socket.io').listen(expressServer);
 
-var peerServer = new PeerServer({ port: 9000 });
+var peerServer = new PeerServer({ port: 9000, path: '/build' });
 var allConnectedPeers = [];
 
 peerServer.on('connection', function(peerID){
