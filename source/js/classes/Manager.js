@@ -12,16 +12,23 @@ export default class Manager{
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build', secure: true});
-        this.peer.on('connection', (conn) => {
-            conn.on('open', () => {
-                conn.on('data', (data) => {
-                    if(conn.peer != this.nickname){
-                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                    }
+        $.ajax({
+            url: '/api/allConnectedPeers',
+            success: (port) => {
+                console.log('success: ', port);
+                this.peer = new Peer(this.nickname, { host: location.hostname, port: port, path: '/build', secure: true});
+                this.peer.on('connection', (conn) => {
+                    conn.on('open', () => {
+                        conn.on('data', (data) => {
+                            if(conn.peer != this.nickname){
+                                GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+                            }
+                        });
+                    });
                 });
-            });
+            }
         });
+
 
         //io.on('user-connected', (newUser) => {
         //    console.log('user-connected: ', newUser);

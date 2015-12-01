@@ -9457,15 +9457,21 @@ var Manager = (function () {
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build', secure: true });
-        this.peer.on('connection', function (conn) {
-            conn.on('open', function () {
-                conn.on('data', function (data) {
-                    if (conn.peer != _this.nickname) {
-                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                    }
+        $.ajax({
+            url: '/api/allConnectedPeers',
+            success: function success(port) {
+                console.log('success: ', port);
+                _this.peer = new Peer(_this.nickname, { host: location.hostname, port: port, path: '/build', secure: true });
+                _this.peer.on('connection', function (conn) {
+                    conn.on('open', function () {
+                        conn.on('data', function (data) {
+                            if (conn.peer != _this.nickname) {
+                                GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+                            }
+                        });
+                    });
                 });
-            });
+            }
         });
 
         //io.on('user-connected', (newUser) => {
