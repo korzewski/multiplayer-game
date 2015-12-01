@@ -6,8 +6,6 @@ app.set('port', (process.env.PORT || 5000));
 
 app.use(express.static( __dirname + '/build' ));
 
-console.log('server is running!');
-
 var expressServer = app.listen(app.get('port'), function() {
     console.log('Node app is running on port', app.get('port'));
 });
@@ -17,7 +15,6 @@ var io = require('socket.io').listen(expressServer);
 
 var peerServer = new PeerServer({ port: 9000, path: '/multiplayer' });
 var allConnectedPeers = [];
-
 
 peerServer.on('connection', function(peerID){
 	allConnectedPeers.push( { peerID: peerID } );
@@ -35,6 +32,10 @@ peerServer.on('disconnect', function(peerID){
 	io.emit('user-disconnected', peerID);
 
 	console.log('user disconnected: ', peerID);
+});
+
+app.get('/', function(req, res){
+	res.sendFile(__dirname + '/build/index.html');
 });
 
 app.get('/api/allConnectedPeers', function(req, res){
