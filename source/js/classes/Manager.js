@@ -7,26 +7,20 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname?');
+        this.nickname = prompt('your nicknameXxx?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        $.ajax({
-            url: '/api/allConnectedPeers',
-            success: (port) => {
-                console.log('success: ', port);
-                this.peer = new Peer(this.nickname, { host: location.hostname, port: port, path: '/build', secure: true});
-                this.peer.on('connection', (conn) => {
-                    conn.on('open', () => {
-                        conn.on('data', (data) => {
-                            if(conn.peer != this.nickname){
-                                GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                            }
-                        });
-                    });
+        this.peer = new Peer(this.nickname, { host: location.hostname });
+        this.peer.on('connection', (conn) => {
+            conn.on('open', () => {
+                conn.on('data', (data) => {
+                    if(conn.peer != this.nickname){
+                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+                    }
                 });
-            }
+            });
         });
 
 

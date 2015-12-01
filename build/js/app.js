@@ -9452,36 +9452,30 @@ var Manager = (function () {
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname?');
+        this.nickname = prompt('your nicknameXxx?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        $.ajax({
-            url: '/api/allConnectedPeers',
-            success: function success(port) {
-                console.log('success: ', port);
-                _this.peer = new Peer(_this.nickname, { host: location.hostname, port: port, path: '/build', secure: true });
-                _this.peer.on('connection', function (conn) {
-                    conn.on('open', function () {
-                        conn.on('data', function (data) {
-                            if (conn.peer != _this.nickname) {
-                                GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                            }
-                        });
-                    });
+        this.peer = new Peer(this.nickname, { host: location.hostname });
+        this.peer.on('connection', function (conn) {
+            conn.on('open', function () {
+                conn.on('data', function (data) {
+                    if (conn.peer != _this.nickname) {
+                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+                    }
                 });
-            }
+            });
         });
 
-        //io.on('user-connected', (newUser) => {
-        //    console.log('user-connected: ', newUser);
-        //    this.connectWithNewPeer(newUser);
-        //});
-        //
-        //io.on('user-disconnected', (disconnectedUser) => {
-        //    console.log('disconnectedUser: ', disconnectedUser);
-        //});
+        io.on('user-connected', function (newUser) {
+            console.log('user-connected: ', newUser);
+            _this.connectWithNewPeer(newUser);
+        });
+
+        io.on('user-disconnected', function (disconnectedUser) {
+            console.log('disconnectedUser: ', disconnectedUser);
+        });
     }
 
     _createClass(Manager, [{
