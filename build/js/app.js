@@ -16454,7 +16454,7 @@ var Manager = (function () {
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build' });
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build', secure: true });
         this.peer.on('connection', function (conn) {
             conn.on('open', function () {
                 conn.on('data', function (data) {

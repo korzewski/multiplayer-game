@@ -12,7 +12,7 @@ export default class Manager{
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build'});
+        this.peer = new Peer(this.nickname, { host: location.hostname, port: 9000, path: '/build', secure: true});
         this.peer.on('connection', (conn) => {
             conn.on('open', () => {
                 conn.on('data', (data) => {
