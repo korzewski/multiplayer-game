@@ -20,6 +20,20 @@ var PeerServer = require('peer').PeerServer;
 
 app.set('port', (process.env.PORT || 5000));
 
+var op = require('openport');
+op.find(
+		{
+			startingPort: 1024,
+			endingPort: 2000,
+			avoid: [ 1025, 1500 ]
+		},
+		function(err, port) {
+			if(err) { console.log(err); return; }
+			console.log('--------------- open port: ', port);
+			// yea! we have an open port between 1024 and 2000, but not port 1025 or 1500.
+		}
+);
+
 app.use(express.static( __dirname + '/build' ));
 
 var expressServer = app.listen(app.get('port'), function() {
