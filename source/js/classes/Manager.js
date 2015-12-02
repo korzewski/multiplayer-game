@@ -7,12 +7,21 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname?');
+        this.nickname = prompt('your nicknameX?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
+        $.ajax({
+            url: '/api/getServerPort',
+            success: (data) => {
+                console.log('success: ', data);
+                this.peer = new Peer(this.nickname, { host: location.hostname, port: data, debug: 3 });
+            }
+        });
+
+        //this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
+
         console.log('hostname: ', location.hostname);
         this.peer.on('connection', (conn) => {
             conn.on('open', () => {
