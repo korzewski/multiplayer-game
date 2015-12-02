@@ -12,7 +12,8 @@ export default class Manager{
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname });
+        this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
+        console.log('hostname: ', location.hostname);
         this.peer.on('connection', (conn) => {
             conn.on('open', () => {
                 conn.on('data', (data) => {

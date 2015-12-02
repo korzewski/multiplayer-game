@@ -9457,7 +9457,8 @@ var Manager = (function () {
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        this.peer = new Peer(this.nickname, { host: location.hostname });
+        this.peer = new Peer(this.nickname, { host: location.hostname, secure: true, port: 443, key: 'peerjs', debug: 3 });
+        console.log('hostname: ', location.hostname);
         this.peer.on('connection', function (conn) {
             conn.on('open', function () {
                 conn.on('data', function (data) {
