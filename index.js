@@ -18,7 +18,7 @@ var allConnectedPeers = [];
 
 // send configuration to client
 io.on('connection', function(socket){
-	socket.emit('env', process.env.NODE_ENV, app.get('port'));
+	socket.emit('env', process.env.NODE_ENV, app.get('port'), allConnectedPeers);
 });
 
 // client peer is created
@@ -49,6 +49,6 @@ app.get('/', function(req, res){
 	res.sendFile( __dirname + '/build/index.html' );
 });
 
-app.get('/api/allConnectedPeers', function(req, res){
-	return res.json(allConnectedPeers);
-});
+//app.get('/api/allConnectedPeers', function(req, res){
+//	return res.json(allConnectedPeers);
+//});
