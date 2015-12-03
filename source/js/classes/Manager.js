@@ -1,4 +1,35 @@
 //var io = require('socket.io-client')();
+var socket = io();
+console.log('io: ', io);
+console.log('socket: ', socket);
+
+socket.emit('test', 1234);
+socket.on('port', (data) => {
+   console.log('on port: ', data);
+});
+
+var peer;
+socket.on('env', function(env, port){
+    console.log('port: ', port);
+    if (env === 'production'){
+        peer = new Peer({
+            host:'/',
+            secure:true,
+            port:443,
+            key: 'peerjs',
+            path: '/api',
+            config: {
+                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
+            }
+        });
+    } else {
+        peer = new Peer({host: '/', port: port, path: '/api'});
+    }
+    peer.on('open', function(id){
+        console.log("peer id: ", id);
+    });
+});
+
 var $ = require('jquery');
 
 export default class Manager{
@@ -7,7 +38,8 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nicknameX?');
+        this.nickname = prompt('your nickname?');
+
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
@@ -20,27 +52,51 @@ export default class Manager{
         //    }
         //});
 
-        this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
+        //var peer;
+        //socket.on('env', function(port){
+        //    console.log('port: ', port);
+        //    if (env === 'production'){
+        //        peer = new Peer({
+        //            host:'/',
+        //            secure:true,
+        //            port:443,
+        //            key: 'peerjs',
+        //            path: '/api',
+        //            config: {
+        //                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
+        //            }
+        //        });
+        //    } else {
+        //        peer = new Peer({host: '/', port: port, path: '/api'});
+        //    }
+        //    peer.on('open', function(id){
+        //        console.log("peer id: ", id);
+        //    });
+        //});
+
+
+
+        //this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
 
         console.log('hostname: ', location.hostname);
-        this.peer.on('connection', (conn) => {
-            conn.on('open', () => {
-                conn.on('data', (data) => {
-                    if(conn.peer != this.nickname){
-                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                    }
-                });
-            });
+        //this.peer.on('connection', (conn) => {
+        //    conn.on('open', () => {
+        //        conn.on('data', (data) => {
+        //            if(conn.peer != this.nickname){
+        //                GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+        //            }
+        //        });
+        //    });
+        //});
+
+        socket.on('user-connected', (newUser) => {
+            console.log('user-connected: ', newUser);
+            this.connectWithNewPeer(newUser);
         });
 
-        //io.on('user-connected', (newUser) => {
-        //    console.log('user-connected: ', newUser);
-        //    this.connectWithNewPeer(newUser);
-        //});
-        //
-        //io.on('user-disconnected', (disconnectedUser) => {
-        //    console.log('disconnectedUser: ', disconnectedUser);
-        //});
+        socket.on('user-disconnected', (disconnectedUser) => {
+            console.log('disconnectedUser: ', disconnectedUser);
+        });
     }
 
     connectWithNewPeer(newUser){
