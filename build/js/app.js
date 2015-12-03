@@ -9429,7 +9429,6 @@ exports['default'] = Level1;
 module.exports = exports['default'];
 
 },{"./PeerPlayer":5,"./Player":6}],4:[function(require,module,exports){
-//var io = require('socket.io-client')();
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -9441,20 +9440,13 @@ var _createClass = (function () { function defineProperties(target, props) { for
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 var socket = io();
-console.log('io: ', io);
-console.log('socket: ', socket);
 
-socket.emit('test', 1234);
-socket.on('port', function (data) {
-    console.log('on port: ', data);
-});
-
-var peer;
+GLOBAL.peer;
 socket.on('env', function (env, port) {
     console.log('env: ', env);
     console.log('port: ', port);
     if (env === 'production') {
-        peer = new Peer({
+        GLOBAL.peer = new Peer({
             host: '/',
             secure: true,
             port: 443,
@@ -9465,10 +9457,28 @@ socket.on('env', function (env, port) {
             }
         });
     } else {
-        peer = new Peer({ host: '/', port: port, path: '/api' });
+        GLOBAL.peer = new Peer({ host: '/', port: port, path: '/api' });
     }
-    peer.on('open', function (id) {
+    GLOBAL.peer.on('open', function (id) {
+        console.log("peer: ", GLOBAL.peer);
         console.log("peer id: ", id);
+
+        socket.emit('peer connected', id);
+
+        GLOBAL.peer.on('data', function (data) {
+            //if(conn.peer != this.nickname){
+            GLOBAL.game.events.onUserDataUpdate.dispatch(GLOBAL.peer.peer, data);
+            //}
+        });
+    });
+
+    socket.on('peer connected', function (newUser) {
+        console.log('user-connected: ', newUser);
+        //this.connectWithNewPeer(newUser);
+    });
+
+    socket.on('peer disconnected', function (disconnectedUser) {
+        console.log('disconnectedUser: ', disconnectedUser);
     });
 });
 
@@ -9476,52 +9486,18 @@ var $ = require('jquery');
 
 var Manager = (function () {
     function Manager() {
-        var _this = this;
-
         _classCallCheck(this, Manager);
 
         if (!GLOBAL.game.events) GLOBAL.game.events = {};
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname?');
+        //this.nickname = prompt('your nickname?');
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        //$.ajax({
-        //    url: '/api/getServerPort',
-        //    success: (data) => {
-        //        console.log('success: ', data);
-        //        this.peer = new Peer(this.nickname, { host: location.hostname, port: data, debug: 3 });
-        //    }
-        //});
-
-        //var peer;
-        //socket.on('env', function(port){
-        //    console.log('port: ', port);
-        //    if (env === 'production'){
-        //        peer = new Peer({
-        //            host:'/',
-        //            secure:true,
-        //            port:443,
-        //            key: 'peerjs',
-        //            path: '/api',
-        //            config: {
-        //                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
-        //            }
-        //        });
-        //    } else {
-        //        peer = new Peer({host: '/', port: port, path: '/api'});
-        //    }
-        //    peer.on('open', function(id){
-        //        console.log("peer id: ", id);
-        //    });
-        //});
-
         //this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
-
-        console.log('hostname: ', location.hostname);
         //this.peer.on('connection', (conn) => {
         //    conn.on('open', () => {
         //        conn.on('data', (data) => {
@@ -9532,28 +9508,28 @@ var Manager = (function () {
         //    });
         //});
 
-        socket.on('user-connected', function (newUser) {
-            console.log('user-connected: ', newUser);
-            _this.connectWithNewPeer(newUser);
-        });
-
-        socket.on('user-disconnected', function (disconnectedUser) {
-            console.log('disconnectedUser: ', disconnectedUser);
-        });
+        //socket.on('user-connected', (newUser) => {
+        //    console.log('user-connected: ', newUser);
+        //    this.connectWithNewPeer(newUser);
+        //});
+        //
+        //socket.on('user-disconnected', (disconnectedUser) => {
+        //    console.log('disconnectedUser: ', disconnectedUser);
+        //});
     }
 
     _createClass(Manager, [{
         key: 'connectWithNewPeer',
         value: function connectWithNewPeer(newUser) {
-            var _this2 = this;
+            var _this = this;
 
             if (newUser != this.nickname) {
                 (function () {
-                    var conn = _this2.peer.connect(newUser);
+                    var conn = GLOBAL.peer.connect(newUser);
                     conn.on('open', function () {
-                        _this2.connectedPeers.push(conn);
+                        _this.connectedPeers.push(conn);
                         GLOBAL.game.events.onUserConnected.dispatch(conn);
-                        console.log('connectedPeers: ', _this2.connectedPeers);
+                        console.log('connectedPeers: ', _this.connectedPeers);
                     });
                 })();
             }
@@ -9569,14 +9545,14 @@ var Manager = (function () {
     }, {
         key: 'updateCurrentPlayersList',
         value: function updateCurrentPlayersList() {
-            var _this3 = this;
+            var _this2 = this;
 
             $.ajax({
                 url: '/api/allConnectedPeers',
                 success: function success(data) {
                     console.log('success: ', data);
                     data.forEach(function (peer) {
-                        _this3.connectWithNewPeer(peer.peerID);
+                        _this2.connectWithNewPeer(peer.peerID);
                     });
                 }
             });

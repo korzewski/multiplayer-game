@@ -10,22 +10,35 @@ app.use(express.static(__dirname + '/build'));
 var peerOptions = {
 	debug: true
 };
-
 app.use('/api', expressPeerServer(server, peerOptions));
 
-io.on('connection', function(socket){
-	console.log('user connected');
 
-	socket.on('disconnect', function(){
+var allConnectedPeers = [];
+
+io.on('connection', function(socket){
+	socket.emit('env', process.env.NODE_ENV, app.get('port'));
+
+	socket.on('disconnect', () => {
 		console.log('user disconnected');
 	});
 
-	socket.on('test', (data) => {
-		console.log('on test: ', data);
+	socket.on('peer connected', (data) => {
+		console.log('peer connected: ', data);
+		allConnectedPeers.push( { peerID: data } );
+
+		socket.emit('peer connected', data);
 	});
 
+	socket.on('peer disconnected', (data) => {
+		allConnectedPeers.forEach((peer, index) =>{
+			if(peer.peerID == data){
+				allConnectedPeers.splice(index, 1);
+			}
+		});
 
-	socket.emit('env', process.env.NODE_ENV, app.get('port'));
+		socket.emit('peer disconnected', data);
+	});
+
 });
 
 server.listen(app.get('port'), function(){
@@ -43,31 +56,11 @@ server.listen(app.get('port'), function(){
 
 
 //var peerServer = new PeerServer({ port: 443, path: '/peerjs' });
-var allConnectedPeers = [];
 
-
-
-
-//Websocket
-//var WebSocketServer = require('ws').Server;
-//var wss = new WebSocketServer( {'server': server} );
-//
-//wss.on('connection', function(ws){
-//	console.log('ws connection');
-//	ws.on('message', function(data){
-//		// ...
-//	});
-//
-//	ws.on('close', function(){
-//		console.log('ws close');
-//		// ...
-//	});
-//
-//});
 
 //server.on('connection', function(peerID){
 //	allConnectedPeers.push( { peerID: peerID } );
-//	//io.emit('user-connected', peerID);
+//	io.emit('user-connected', peerID);
 //
 //	console.log('new user connected: ', peerID);
 //});
@@ -78,7 +71,7 @@ var allConnectedPeers = [];
 //			allConnectedPeers.splice(index, 1);
 //		}
 //	});
-//	//io.emit('user-disconnected', peerID);
+//	io.emit('user-disconnected', peerID);
 //
 //	console.log('user disconnected: ', peerID);
 //});
@@ -90,7 +83,3 @@ app.get('/', function(req, res){
 app.get('/api/allConnectedPeers', function(req, res){
 	return res.json(allConnectedPeers);
 });
-
-//app.get('/api/getServerPort', function(req, res){
-//	return res.json( app.get('port') );
-//});

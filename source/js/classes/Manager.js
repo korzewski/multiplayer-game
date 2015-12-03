@@ -1,19 +1,14 @@
-//var io = require('socket.io-client')();
 var socket = io();
-console.log('io: ', io);
-console.log('socket: ', socket);
 
-socket.emit('test', 1234);
-socket.on('port', (data) => {
-   console.log('on port: ', data);
-});
 
-var peer;
+
+
+GLOBAL.peer;
 socket.on('env', function(env, port){
     console.log('env: ', env);
     console.log('port: ', port);
     if (env === 'production'){
-        peer = new Peer({
+        GLOBAL.peer = new Peer({
             host:'/',
             secure:true,
             port:443,
@@ -24,10 +19,29 @@ socket.on('env', function(env, port){
             }
         });
     } else {
-        peer = new Peer({host: '/', port: port, path: '/api'});
+        GLOBAL.peer = new Peer({host: '/', port: port, path: '/api'});
     }
-    peer.on('open', function(id){
+    GLOBAL.peer.on('open', function(id){
+        console.log("peer: ", GLOBAL.peer);
         console.log("peer id: ", id);
+
+        socket.emit('peer connected', id);
+
+        GLOBAL.peer.on('data', (data) => {
+            //if(conn.peer != this.nickname){
+                GLOBAL.game.events.onUserDataUpdate.dispatch(GLOBAL.peer.peer, data);
+            //}
+        });
+
+    });
+
+    socket.on('peer connected', (newUser) => {
+        console.log('user-connected: ', newUser);
+        //this.connectWithNewPeer(newUser);
+    });
+
+    socket.on('peer disconnected', (disconnectedUser) => {
+        console.log('disconnectedUser: ', disconnectedUser);
     });
 });
 
@@ -39,47 +53,13 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        this.nickname = prompt('your nickname?');
+        //this.nickname = prompt('your nickname?');
 
 
         this.connectedPeers = [];
         this.updateCurrentPlayersList();
 
-        //$.ajax({
-        //    url: '/api/getServerPort',
-        //    success: (data) => {
-        //        console.log('success: ', data);
-        //        this.peer = new Peer(this.nickname, { host: location.hostname, port: data, debug: 3 });
-        //    }
-        //});
-
-        //var peer;
-        //socket.on('env', function(port){
-        //    console.log('port: ', port);
-        //    if (env === 'production'){
-        //        peer = new Peer({
-        //            host:'/',
-        //            secure:true,
-        //            port:443,
-        //            key: 'peerjs',
-        //            path: '/api',
-        //            config: {
-        //                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
-        //            }
-        //        });
-        //    } else {
-        //        peer = new Peer({host: '/', port: port, path: '/api'});
-        //    }
-        //    peer.on('open', function(id){
-        //        console.log("peer id: ", id);
-        //    });
-        //});
-
-
-
         //this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
-
-        console.log('hostname: ', location.hostname);
         //this.peer.on('connection', (conn) => {
         //    conn.on('open', () => {
         //        conn.on('data', (data) => {
@@ -90,19 +70,19 @@ export default class Manager{
         //    });
         //});
 
-        socket.on('user-connected', (newUser) => {
-            console.log('user-connected: ', newUser);
-            this.connectWithNewPeer(newUser);
-        });
-
-        socket.on('user-disconnected', (disconnectedUser) => {
-            console.log('disconnectedUser: ', disconnectedUser);
-        });
+        //socket.on('user-connected', (newUser) => {
+        //    console.log('user-connected: ', newUser);
+        //    this.connectWithNewPeer(newUser);
+        //});
+        //
+        //socket.on('user-disconnected', (disconnectedUser) => {
+        //    console.log('disconnectedUser: ', disconnectedUser);
+        //});
     }
 
     connectWithNewPeer(newUser){
         if(newUser != this.nickname){
-            let conn = this.peer.connect(newUser);
+            let conn = GLOBAL.peer.connect(newUser);
             conn.on('open', () => {
                 this.connectedPeers.push( conn );
                 GLOBAL.game.events.onUserConnected.dispatch(conn);
