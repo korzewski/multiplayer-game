@@ -6,3 +6,4 @@
 * Multiplayer connections: PeerJS
 
 Project is currently at very early stage so don't expect too much!
+Demo is available here: https://mysterious-woodland-3122.herokuapp.com/
