@@ -9451,6 +9451,7 @@ socket.on('port', function (data) {
 
 var peer;
 socket.on('env', function (env, port) {
+    console.log('env: ', env);
     console.log('port: ', port);
     if (env === 'production') {
         peer = new Peer({
