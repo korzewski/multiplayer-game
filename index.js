@@ -48,7 +48,3 @@ server.listen(app.get('port'), function(){
 app.get('/', function(req, res){
 	res.sendFile( __dirname + '/build/index.html' );
 });
-
-//app.get('/api/allConnectedPeers', function(req, res){
-//	return res.json(allConnectedPeers);
-//});

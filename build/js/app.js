@@ -268,10 +268,9 @@ var Manager = (function () {
 
             _this.peer.on('connection', function (conn) {
                 console.log('peer on connection: ', conn);
-
                 conn.on('open', function () {
                     conn.on('data', function (data) {
-                        console.log('on data: ', data);
+                        //console.log('on data: ', data);
                         if (conn.peer != _this.nickname) {
                             GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
                         }
@@ -311,7 +310,7 @@ var Manager = (function () {
         key: 'broadcast',
         value: function broadcast(data) {
             this.connectedPeers.forEach(function (peer, index) {
-                console.log('sending data to peer: ', peer);
+                //console.log('sending data to peer: ', peer);
                 peer.send(data);
             });
         }
