@@ -9439,63 +9439,89 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var socket = io();
-
-GLOBAL.peer;
-socket.on('env', function (env, port) {
-    console.log('env: ', env);
-    console.log('port: ', port);
-    if (env === 'production') {
-        GLOBAL.peer = new Peer({
-            host: '/',
-            secure: true,
-            port: 443,
-            key: 'peerjs',
-            path: '/api',
-            config: {
-                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
-            }
-        });
-    } else {
-        GLOBAL.peer = new Peer({ host: '/', port: port, path: '/api' });
-    }
-    GLOBAL.peer.on('open', function (id) {
-        console.log("peer: ", GLOBAL.peer);
-        console.log("peer id: ", id);
-
-        socket.emit('peer connected', id);
-
-        GLOBAL.peer.on('data', function (data) {
-            //if(conn.peer != this.nickname){
-            GLOBAL.game.events.onUserDataUpdate.dispatch(GLOBAL.peer.peer, data);
-            //}
-        });
-    });
-
-    socket.on('peer connected', function (newUser) {
-        console.log('user-connected: ', newUser);
-        //this.connectWithNewPeer(newUser);
-    });
-
-    socket.on('peer disconnected', function (disconnectedUser) {
-        console.log('disconnectedUser: ', disconnectedUser);
-    });
-});
-
 var $ = require('jquery');
 
 var Manager = (function () {
     function Manager() {
+        var _this = this;
+
         _classCallCheck(this, Manager);
 
         if (!GLOBAL.game.events) GLOBAL.game.events = {};
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
-        //this.nickname = prompt('your nickname?');
-
         this.connectedPeers = [];
-        this.updateCurrentPlayersList();
+
+        var socket = io();
+        socket.on('env', function (env, port) {
+            console.log('env: ', env);
+            console.log('port: ', port);
+
+            if (env === 'production') {
+                _this.peer = new Peer({
+                    host: '/',
+                    secure: true,
+                    port: 443,
+                    key: 'peerjs',
+                    path: '/api',
+                    config: {
+                        'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
+                    }
+                });
+            } else {
+                _this.peer = new Peer({ host: '/', port: port, path: '/api' });
+                console.log('peer: ', _this.peer);
+            }
+
+            _this.peerID = _this.peer.peer;
+
+            _this.peer.on('connection', function (conn) {
+                console.log('peer on connection: ', conn);
+
+                conn.on('open', function () {
+                    conn.on('data', function (data) {
+                        console.log('on data: ', data);
+                        if (conn.peer != _this.nickname) {
+                            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+                        }
+                    });
+                });
+            });
+
+            //GLOBAL.peer.on('open', function(id){
+            //    GLOBAL.peerID = id;
+            //    console.log("peer id: ", id);
+            //
+            //    socket.emit('peer connected', id);
+            //
+            //    GLOBAL.peer.on('data', (data) => {
+            //        console.log('on data: ', data);
+            //        if(GLOBAL.peerID != data){
+            //            GLOBAL.game.events.onUserDataUpdate.dispatch(GLOBAL.peer.peer, data);
+            //        }
+            //    });
+            //});
+            //
+            //socket.on('user-connected', (peerID) => {
+            //    console.log('user-connected: ', peerID);
+            //    //socket.emit('peer connected', peerID);
+            //    GLOBAL.manager.connectWithNewPeer(peerID);
+            //});
+            //
+            //socket.on('user-disconnected', (disconnectedUser) => {
+            //    console.log('user-disconnected: ', disconnectedUser);
+            //});
+        });
+
+        socket.on('user-connected', function (newUser) {
+            console.log('user-connected: ', newUser);
+            _this.connectWithNewPeer(newUser);
+        });
+
+        socket.on('user-disconnected', function (disconnectedUser) {
+            console.log('disconnectedUser: ', disconnectedUser);
+        });
 
         //this.peer = new Peer(this.nickname, { host: location.hostname, secure:true, port:443, key: 'peerjs', debug: 3 });
         //this.peer.on('connection', (conn) => {
@@ -9521,15 +9547,15 @@ var Manager = (function () {
     _createClass(Manager, [{
         key: 'connectWithNewPeer',
         value: function connectWithNewPeer(newUser) {
-            var _this = this;
+            var _this2 = this;
 
-            if (newUser != this.nickname) {
+            if (newUser != this.peerID) {
                 (function () {
-                    var conn = GLOBAL.peer.connect(newUser);
+                    var conn = _this2.peer.connect(newUser);
                     conn.on('open', function () {
-                        _this.connectedPeers.push(conn);
+                        _this2.connectedPeers.push(conn);
                         GLOBAL.game.events.onUserConnected.dispatch(conn);
-                        console.log('connectedPeers: ', _this.connectedPeers);
+                        console.log('connectedPeers: ', _this2.connectedPeers);
                     });
                 })();
             }
@@ -9545,14 +9571,14 @@ var Manager = (function () {
     }, {
         key: 'updateCurrentPlayersList',
         value: function updateCurrentPlayersList() {
-            var _this2 = this;
+            var _this3 = this;
 
             $.ajax({
                 url: '/api/allConnectedPeers',
                 success: function success(data) {
                     console.log('success: ', data);
                     data.forEach(function (peer) {
-                        _this2.connectWithNewPeer(peer.peerID);
+                        _this3.connectWithNewPeer(peer.peerID);
                     });
                 }
             });
