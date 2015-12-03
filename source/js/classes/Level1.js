@@ -40,7 +40,7 @@ export default class Level1 extends Phaser.State{
 
     onUserDataUpdate(peerName, data){
         //console.log('onUserDataUpdate peerName: ', peerName);
-        console.log('onUserDataUpdate data: ', data);
+        //console.log('onUserDataUpdate data: ', data);
         //
         //console.log('this.connectedPlayers: ', this.connectedPlayers);
         this.connectedPlayers[peerName].updatePosition(data);

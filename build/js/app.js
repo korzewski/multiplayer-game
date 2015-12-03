@@ -180,7 +180,7 @@ var Level1 = (function (_Phaser$State) {
         key: 'onUserDataUpdate',
         value: function onUserDataUpdate(peerName, data) {
             //console.log('onUserDataUpdate peerName: ', peerName);
-            console.log('onUserDataUpdate data: ', data);
+            //console.log('onUserDataUpdate data: ', data);
             //
             //console.log('this.connectedPlayers: ', this.connectedPlayers);
             this.connectedPlayers[peerName].updatePosition(data);
@@ -270,7 +270,6 @@ var Manager = (function () {
                 console.log('peer on connection: ', conn);
                 conn.on('open', function () {
                     conn.on('data', function (data) {
-                        //console.log('on data: ', data);
                         if (conn.peer != _this.nickname) {
                             GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
                         }
@@ -285,7 +284,7 @@ var Manager = (function () {
         });
 
         socket.on('user-disconnected', function (disconnectedUser) {
-            console.log('disconnectedUser: ', disconnectedUser);
+            console.log('user-disconnected: ', disconnectedUser);
         });
     }
 
@@ -301,7 +300,6 @@ var Manager = (function () {
                     conn.on('open', function () {
                         _this2.connectedPeers.push(conn);
                         GLOBAL.game.events.onUserConnected.dispatch(conn);
-                        console.log('connectedPeers: ', _this2.connectedPeers);
                     });
                 })();
             }
@@ -310,7 +308,6 @@ var Manager = (function () {
         key: 'broadcast',
         value: function broadcast(data) {
             this.connectedPeers.forEach(function (peer, index) {
-                //console.log('sending data to peer: ', peer);
                 peer.send(data);
             });
         }

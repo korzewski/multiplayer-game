@@ -37,7 +37,6 @@ export default class Manager{
                 console.log('peer on connection: ', conn);
                 conn.on('open', () => {
                     conn.on('data', (data) => {
-                        //console.log('on data: ', data);
                         if(conn.peer != this.nickname){
                             GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
                         }
@@ -52,7 +51,7 @@ export default class Manager{
         });
 
         socket.on('user-disconnected', (disconnectedUser) => {
-            console.log('disconnectedUser: ', disconnectedUser);
+            console.log('user-disconnected: ', disconnectedUser);
         });
     }
 
@@ -63,14 +62,12 @@ export default class Manager{
             conn.on('open', () => {
                 this.connectedPeers.push( conn );
                 GLOBAL.game.events.onUserConnected.dispatch(conn);
-                console.log('connectedPeers: ', this.connectedPeers);
             });
         }
     }
 
     broadcast(data){
         this.connectedPeers.forEach((peer, index) => {
-            //console.log('sending data to peer: ', peer);
             peer.send(data);
         });
     }
