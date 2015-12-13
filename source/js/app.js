@@ -43,6 +43,8 @@ class Preloader extends Phaser.State{
         this.game.load.image('level1-tiles', 'extra/maps/level1-tiles.png');
         this.game.load.image('player', 'extra/img/player.png');
         this.game.load.image('coin', 'extra/img/coin.png');
+        this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
+        this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
     }
 
     create(){
