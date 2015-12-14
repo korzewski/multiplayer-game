@@ -1,17 +1,57 @@
 export default class Player extends Phaser.Sprite{
-    constructor(game, posX, posY, spriteName){
+    constructor(game, posX, posY, spriteName, blockedLayer){
         super(game, posX, posY, spriteName);
         this.game.physics.arcade.enable(this);
         this.body.collideWorldBounds = true;
 
+        this.blockedLayer = blockedLayer;
+
         this.speed = 100;
+        this.fireRate = 100;
+        this.nextFire = 0;
+        this.bulletSpeed = 200;
 
         this.cursors = this.game.input.keyboard.createCursorKeys();
-        this.anchor.setTo(0.5, 0.5);
-        this.game.add.existing(this);
+        this.game.input.onDown.add(this.fire, this);
 
-        //this.onlineLatencyMax = 100;
-        //this.onlineLatency = this.onlineLatencyMax;
+        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
+        this.bullets.createMultiple(10, 'bullet-1');
+        this.bullets.forEach((bullet) => {
+            console.log('bullet: ', bullet);
+            bullet.anchor.setTo(0.5);
+            bullet.scale.setTo(0.9);
+            bullet.smoothed = false;
+            bullet.checkWorldBounds = true;
+            bullet.outOfBoundsKill = true;
+        });
+
+        this.anchor.setTo(0.5, 0.5);
+        this.smoothed = false;
+        this.game.add.existing(this);
+    }
+
+    fire(){
+        if(this.game.time.now > this.nextFire && this.bullets.countDead() > 0){
+            this.nextFire = this.game.time.now + this.fireRate;
+
+            let bullet = this.bullets.getFirstDead();
+            bullet.reset(this.x, this.y);
+
+            let shootAngleDeg = Phaser.Math.radToDeg( this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed) );
+            let shootInfo = {
+                angleDeg: shootAngleDeg,
+                speed: this.bulletSpeed,
+                x: parseInt(bullet.x),
+                y: parseInt(bullet.y)
+            };
+
+            GLOBAL.manager.broadcast({
+                type: 'shoot',
+                bullet: shootInfo
+            });
+
+            console.log('shootInfo: ', shootInfo);
+        }
     }
 
     update(){
@@ -32,16 +72,18 @@ export default class Player extends Phaser.Sprite{
             this.body.velocity.y -= this.speed;
         }
 
+        this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+            bullet.kill();
+        });
+
         this.onlineUpdate();
     }
 
     onlineUpdate(){
-        //if(--this.onlineLatency < 0){
-        //    this.onlineLatency = this.onlineLatencyMax;
-            GLOBAL.manager.broadcast({
-                posX: parseInt(this.position.x),
-                posY: parseInt(this.position.y)
-            });
-        //}
+        GLOBAL.manager.broadcast({
+            type: 'position',
+            posX: parseInt(this.position.x),
+            posY: parseInt(this.position.y)
+        });
     }
 }

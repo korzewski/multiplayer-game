@@ -15,7 +15,7 @@ export default class Level1 extends Phaser.State{
         this.coins.enableBody = true;
         this.map.createFromObjects('money', 'mm', 'coin', 0, true, false, this.coins);
 
-        this.player = new Player(this.game, 80, 100, 'player');
+        this.player = new Player(this.game, 80, 100, 'player', this.blockedLayer);
         this.game.camera.follow(this.player);
 
         this.connectedPlayers = {};
@@ -28,12 +28,11 @@ export default class Level1 extends Phaser.State{
 
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
-
     }
 
     onUserConnected(conn){
         if(conn.peer != GLOBAL.manager.nickname){
-            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn);
+            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn, this.blockedLayer);
             console.log('connectedPlayers: ', this.connectedPlayers);
         }
     }
@@ -43,9 +42,13 @@ export default class Level1 extends Phaser.State{
         //console.log('onUserDataUpdate data: ', data);
         //
         //console.log('this.connectedPlayers: ', this.connectedPlayers);
-        this.connectedPlayers[peerName].updatePosition(data);
-    }
 
+        if(data.type == 'position'){
+            this.connectedPlayers[peerName].updatePosition(data);
+        } else if(data.type == 'shoot'){
+            this.connectedPlayers[peerName].shoot(data);
+        }
+    }
 
     update(){
         this.game.physics.arcade.collide(this.player, this.blockedLayer);
@@ -62,9 +65,10 @@ export default class Level1 extends Phaser.State{
         this.scoresLabel.text = 'scores: ' + this.scores;
     }
 
-    //render() {
-    //    this.game.debug.cameraInfo(this.game.camera, 32, 32);
-    //    this.game.debug.spriteCoords(this.player, 32, 500);
-    //}
+    render() {
+        this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
+        // this.game.debug.cameraInfo(this.game.camera, 32, 32);
+        // this.game.debug.spriteCoords(this.player, 32, 500);
+    }
 }
 
