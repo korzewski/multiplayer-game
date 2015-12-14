@@ -6,6 +6,9 @@ export default class Player extends Phaser.Sprite{
 
         this.blockedLayer = blockedLayer;
 
+        this.health = 100;
+        this.maxDamage = 10;
+
         this.speed = 100;
         this.fireRate = 100;
         this.nextFire = 0;
@@ -17,7 +20,6 @@ export default class Player extends Phaser.Sprite{
         this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
         this.bullets.createMultiple(10, 'bullet-1');
         this.bullets.forEach((bullet) => {
-            console.log('bullet: ', bullet);
             bullet.anchor.setTo(0.5);
             bullet.scale.setTo(0.9);
             bullet.smoothed = false;
@@ -49,9 +51,12 @@ export default class Player extends Phaser.Sprite{
                 type: 'shoot',
                 bullet: shootInfo
             });
-
-            console.log('shootInfo: ', shootInfo);
         }
+    }
+
+    addDamage(data){
+        this.health -= data.damage;
+        console.log('addDamage currentHealth: ', this.health);
     }
 
     update(){

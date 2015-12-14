@@ -28,31 +28,55 @@ export default class Level1 extends Phaser.State{
 
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
+        this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
     }
 
     onUserConnected(conn){
         if(conn.peer != GLOBAL.manager.nickname){
             this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn, this.blockedLayer);
-            console.log('connectedPlayers: ', this.connectedPlayers);
         }
     }
 
-    onUserDataUpdate(peerName, data){
-        //console.log('onUserDataUpdate peerName: ', peerName);
-        //console.log('onUserDataUpdate data: ', data);
-        //
-        //console.log('this.connectedPlayers: ', this.connectedPlayers);
+    onUserDisconnected(userName){
+        this.connectedPlayers[userName].destroy();
+        delete this.connectedPlayers[userName];
+    }
 
+    onUserDataUpdate(peerName, data){
         if(data.type == 'position'){
             this.connectedPlayers[peerName].updatePosition(data);
         } else if(data.type == 'shoot'){
             this.connectedPlayers[peerName].shoot(data);
+        } else if(data.type == 'damage'){
+            this.player.addDamage(data);
         }
     }
 
     update(){
         this.game.physics.arcade.collide(this.player, this.blockedLayer);
         this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
+
+        for(let connectedPlayer in this.connectedPlayers){
+            this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer], this.player.bullets, (connPlayer, bullet) => {
+                GLOBAL.manager.sendSingleData(connPlayer.peer, {
+                    type: 'damage',
+                    damage: this.player.maxDamage
+                });
+                bullet.kill();
+            });
+
+            this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, (connPlayer, bullet) => {
+                bullet.kill();
+            });
+
+            for(let connectedPlayer2 in this.connectedPlayers){
+                if(connectedPlayer != connectedPlayer2){
+                    this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], (connectedPlayer, bullet) => {
+                        bullet.kill();
+                    });
+                }
+            }
+        }
     }
 
     collectCoin(player, coin){
@@ -66,9 +90,8 @@ export default class Level1 extends Phaser.State{
     }
 
     render() {
-        this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
-        // this.game.debug.cameraInfo(this.game.camera, 32, 32);
-        // this.game.debug.spriteCoords(this.player, 32, 500);
+        //this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
+        //this.game.debug.cameraInfo(this.game.camera, 32, 32);
+        //this.game.debug.spriteCoords(this.player, 32, 500);
     }
 }
-

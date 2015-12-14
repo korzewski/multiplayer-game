@@ -2,6 +2,7 @@ export default class Manager{
     constructor(){
         if (!GLOBAL.game.events) GLOBAL.game.events = {};
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
+        GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
         this.connectedPeers = [];
@@ -34,7 +35,6 @@ export default class Manager{
             });
 
             this.peer.on('connection', (conn) => {
-                console.log('peer on connection: ', conn);
                 conn.on('open', () => {
                     conn.on('data', (data) => {
                         if(conn.peer != this.nickname){
@@ -52,12 +52,12 @@ export default class Manager{
 
         socket.on('user-disconnected', (disconnectedUser) => {
             console.log('user-disconnected: ', disconnectedUser);
+            GLOBAL.game.events.onUserDisconnected.dispatch(disconnectedUser);
         });
     }
 
     connectWithNewPeer(newUser){
         if(newUser != this.peerID){
-            console.log('connectWithNewPeer: ', newUser);
             let conn = this.peer.connect(newUser);
             conn.on('open', () => {
                 this.connectedPeers.push( conn );
@@ -70,5 +70,9 @@ export default class Manager{
         this.connectedPeers.forEach((peer, index) => {
             peer.send(data);
         });
+    }
+
+    sendSingleData(peer, data){
+        peer.send(data);
     }
 }

@@ -169,34 +169,61 @@ var Level1 = (function (_Phaser$State) {
 
             this.game.events.onUserConnected.add(this.onUserConnected, this);
             this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
+            this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
         }
     }, {
         key: 'onUserConnected',
         value: function onUserConnected(conn) {
             if (conn.peer != GLOBAL.manager.nickname) {
                 this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 200, 100, 'player', conn, this.blockedLayer);
-                console.log('connectedPlayers: ', this.connectedPlayers);
             }
+        }
+    }, {
+        key: 'onUserDisconnected',
+        value: function onUserDisconnected(userName) {
+            this.connectedPlayers[userName].destroy();
+            delete this.connectedPlayers[userName];
         }
     }, {
         key: 'onUserDataUpdate',
         value: function onUserDataUpdate(peerName, data) {
-            //console.log('onUserDataUpdate peerName: ', peerName);
-            //console.log('onUserDataUpdate data: ', data);
-            //
-            //console.log('this.connectedPlayers: ', this.connectedPlayers);
-
             if (data.type == 'position') {
                 this.connectedPlayers[peerName].updatePosition(data);
             } else if (data.type == 'shoot') {
                 this.connectedPlayers[peerName].shoot(data);
+            } else if (data.type == 'damage') {
+                this.player.addDamage(data);
             }
         }
     }, {
         key: 'update',
         value: function update() {
+            var _this = this;
+
             this.game.physics.arcade.collide(this.player, this.blockedLayer);
             this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
+
+            for (var connectedPlayer in this.connectedPlayers) {
+                this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer], this.player.bullets, function (connPlayer, bullet) {
+                    GLOBAL.manager.sendSingleData(connPlayer.peer, {
+                        type: 'damage',
+                        damage: _this.player.maxDamage
+                    });
+                    bullet.kill();
+                });
+
+                this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, function (connPlayer, bullet) {
+                    bullet.kill();
+                });
+
+                for (var connectedPlayer2 in this.connectedPlayers) {
+                    if (connectedPlayer != connectedPlayer2) {
+                        this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], function (connectedPlayer, bullet) {
+                            bullet.kill();
+                        });
+                    }
+                }
+            }
         }
     }, {
         key: 'collectCoin',
@@ -213,9 +240,9 @@ var Level1 = (function (_Phaser$State) {
     }, {
         key: 'render',
         value: function render() {
-            this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
-            // this.game.debug.cameraInfo(this.game.camera, 32, 32);
-            // this.game.debug.spriteCoords(this.player, 32, 500);
+            //this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
+            //this.game.debug.cameraInfo(this.game.camera, 32, 32);
+            //this.game.debug.spriteCoords(this.player, 32, 500);
         }
     }]);
 
@@ -244,6 +271,7 @@ var Manager = (function () {
 
         if (!GLOBAL.game.events) GLOBAL.game.events = {};
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
+        GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
 
         this.connectedPeers = [];
@@ -276,7 +304,6 @@ var Manager = (function () {
             });
 
             _this.peer.on('connection', function (conn) {
-                console.log('peer on connection: ', conn);
                 conn.on('open', function () {
                     conn.on('data', function (data) {
                         if (conn.peer != _this.nickname) {
@@ -294,6 +321,7 @@ var Manager = (function () {
 
         socket.on('user-disconnected', function (disconnectedUser) {
             console.log('user-disconnected: ', disconnectedUser);
+            GLOBAL.game.events.onUserDisconnected.dispatch(disconnectedUser);
         });
     }
 
@@ -304,7 +332,6 @@ var Manager = (function () {
 
             if (newUser != this.peerID) {
                 (function () {
-                    console.log('connectWithNewPeer: ', newUser);
                     var conn = _this2.peer.connect(newUser);
                     conn.on('open', function () {
                         _this2.connectedPeers.push(conn);
@@ -319,6 +346,11 @@ var Manager = (function () {
             this.connectedPeers.forEach(function (peer, index) {
                 peer.send(data);
             });
+        }
+    }, {
+        key: 'sendSingleData',
+        value: function sendSingleData(peer, data) {
+            peer.send(data);
         }
     }]);
 
@@ -434,6 +466,9 @@ var Player = (function (_Phaser$Sprite) {
 
         this.blockedLayer = blockedLayer;
 
+        this.health = 100;
+        this.maxDamage = 10;
+
         this.speed = 100;
         this.fireRate = 100;
         this.nextFire = 0;
@@ -445,7 +480,6 @@ var Player = (function (_Phaser$Sprite) {
         this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
         this.bullets.createMultiple(10, 'bullet-1');
         this.bullets.forEach(function (bullet) {
-            console.log('bullet: ', bullet);
             bullet.anchor.setTo(0.5);
             bullet.scale.setTo(0.9);
             bullet.smoothed = false;
@@ -479,9 +513,13 @@ var Player = (function (_Phaser$Sprite) {
                     type: 'shoot',
                     bullet: shootInfo
                 });
-
-                console.log('shootInfo: ', shootInfo);
             }
+        }
+    }, {
+        key: 'addDamage',
+        value: function addDamage(data) {
+            this.health -= data.damage;
+            console.log('addDamage currentHealth: ', this.health);
         }
     }, {
         key: 'update',
