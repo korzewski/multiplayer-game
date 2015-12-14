@@ -22,6 +22,12 @@ export default class PeerPlayer extends Phaser.Sprite{
     }
 
     updatePosition(data){
+        if(data.posX > this.position.x){
+            this.scale.x = -1;
+        } else {
+            this.scale.x = 1;
+        }
+
         this.position.x = data.posX;
         this.position.y = data.posY;
     }

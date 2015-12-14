@@ -26,6 +26,14 @@ export default class Level1 extends Phaser.State{
         this.scoresLabel.fixedToCamera = true;
         this.scoresLabel.cameraOffset.setTo(10, 10);
 
+        this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.player.health, this.textStyle);
+        this.healthLabel.fixedToCamera = true;
+        this.healthLabel.cameraOffset.setTo(10, 30);
+
+        this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.player.kills, this.textStyle);
+        this.killsLabel.fixedToCamera = true;
+        this.killsLabel.cameraOffset.setTo(10, 50);
+
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
         this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
@@ -33,7 +41,7 @@ export default class Level1 extends Phaser.State{
 
     onUserConnected(conn){
         if(conn.peer != GLOBAL.manager.nickname){
-            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 200, 100, 'player', conn, this.blockedLayer);
+            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 80, 100, 'player', conn, this.blockedLayer);
         }
     }
 
@@ -48,7 +56,12 @@ export default class Level1 extends Phaser.State{
         } else if(data.type == 'shoot'){
             this.connectedPlayers[peerName].shoot(data);
         } else if(data.type == 'damage'){
-            this.player.addDamage(data);
+            this.player.addDamage(data, this.connectedPlayers[peerName]);
+            this.healthLabel.text = 'health: ' + this.player.health;
+        } else if(data.type == 'kill'){
+            this.player.addKill();
+            this.addPoints(100);
+            this.killsLabel.text = 'kills: ' + this.player.kills;
         }
     }
 
@@ -81,11 +94,11 @@ export default class Level1 extends Phaser.State{
 
     collectCoin(player, coin){
         coin.kill();
-        this.addPoints();
+        this.addPoints(10);
     }
 
-    addPoints(){
-        this.scores += 10;
+    addPoints(value){
+        this.scores += value;
         this.scoresLabel.text = 'scores: ' + this.scores;
     }
 

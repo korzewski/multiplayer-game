@@ -167,6 +167,14 @@ var Level1 = (function (_Phaser$State) {
             this.scoresLabel.fixedToCamera = true;
             this.scoresLabel.cameraOffset.setTo(10, 10);
 
+            this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.player.health, this.textStyle);
+            this.healthLabel.fixedToCamera = true;
+            this.healthLabel.cameraOffset.setTo(10, 30);
+
+            this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.player.kills, this.textStyle);
+            this.killsLabel.fixedToCamera = true;
+            this.killsLabel.cameraOffset.setTo(10, 50);
+
             this.game.events.onUserConnected.add(this.onUserConnected, this);
             this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
             this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
@@ -175,7 +183,7 @@ var Level1 = (function (_Phaser$State) {
         key: 'onUserConnected',
         value: function onUserConnected(conn) {
             if (conn.peer != GLOBAL.manager.nickname) {
-                this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 200, 100, 'player', conn, this.blockedLayer);
+                this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 80, 100, 'player', conn, this.blockedLayer);
             }
         }
     }, {
@@ -192,7 +200,12 @@ var Level1 = (function (_Phaser$State) {
             } else if (data.type == 'shoot') {
                 this.connectedPlayers[peerName].shoot(data);
             } else if (data.type == 'damage') {
-                this.player.addDamage(data);
+                this.player.addDamage(data, this.connectedPlayers[peerName]);
+                this.healthLabel.text = 'health: ' + this.player.health;
+            } else if (data.type == 'kill') {
+                this.player.addKill();
+                this.addPoints(100);
+                this.killsLabel.text = 'kills: ' + this.player.kills;
             }
         }
     }, {
@@ -229,12 +242,12 @@ var Level1 = (function (_Phaser$State) {
         key: 'collectCoin',
         value: function collectCoin(player, coin) {
             coin.kill();
-            this.addPoints();
+            this.addPoints(10);
         }
     }, {
         key: 'addPoints',
-        value: function addPoints() {
-            this.scores += 10;
+        value: function addPoints(value) {
+            this.scores += value;
             this.scoresLabel.text = 'scores: ' + this.scores;
         }
     }, {
@@ -405,6 +418,12 @@ var PeerPlayer = (function (_Phaser$Sprite) {
     _createClass(PeerPlayer, [{
         key: 'updatePosition',
         value: function updatePosition(data) {
+            if (data.posX > this.position.x) {
+                this.scale.x = -1;
+            } else {
+                this.scale.x = 1;
+            }
+
             this.position.x = data.posX;
             this.position.y = data.posY;
         }
@@ -468,6 +487,7 @@ var Player = (function (_Phaser$Sprite) {
 
         this.health = 100;
         this.maxDamage = 10;
+        this.kills = 0;
 
         this.speed = 100;
         this.fireRate = 100;
@@ -475,6 +495,12 @@ var Player = (function (_Phaser$Sprite) {
         this.bulletSpeed = 200;
 
         this.cursors = this.game.input.keyboard.createCursorKeys();
+        this.cursorsWSAD = {
+            up: this.game.input.keyboard.addKey(Phaser.Keyboard.W),
+            down: this.game.input.keyboard.addKey(Phaser.Keyboard.S),
+            left: this.game.input.keyboard.addKey(Phaser.Keyboard.A),
+            right: this.game.input.keyboard.addKey(Phaser.Keyboard.D)
+        };
         this.game.input.onDown.add(this.fire, this);
 
         this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
@@ -486,6 +512,8 @@ var Player = (function (_Phaser$Sprite) {
             bullet.checkWorldBounds = true;
             bullet.outOfBoundsKill = true;
         });
+
+        this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
 
         this.anchor.setTo(0.5, 0.5);
         this.smoothed = false;
@@ -516,10 +544,26 @@ var Player = (function (_Phaser$Sprite) {
             }
         }
     }, {
+        key: 'addKill',
+        value: function addKill() {
+            this.kills++;
+        }
+    }, {
         key: 'addDamage',
-        value: function addDamage(data) {
+        value: function addDamage(data, connectedPlayer) {
             this.health -= data.damage;
-            console.log('addDamage currentHealth: ', this.health);
+            if (this.health <= 0) {
+                this.gameOver(connectedPlayer);
+            }
+        }
+    }, {
+        key: 'gameOver',
+        value: function gameOver(connectedPlayer) {
+            console.log('killed by: ', connectedPlayer);
+            GLOBAL.manager.sendSingleData(connectedPlayer.peer, {
+                type: 'kill'
+            });
+            window.location.reload();
         }
     }, {
         key: 'update',
@@ -527,17 +571,17 @@ var Player = (function (_Phaser$Sprite) {
             this.body.velocity.x = 0;
             this.body.velocity.y = 0;
 
-            if (this.cursors.right.isDown) {
+            if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
                 this.body.velocity.x += this.speed;
                 this.scale.x = -1;
-            } else if (this.cursors.left.isDown) {
+            } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
                 this.body.velocity.x -= this.speed;
                 this.scale.x = 1;
             }
 
-            if (this.cursors.down.isDown) {
+            if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
                 this.body.velocity.y += this.speed;
-            } else if (this.cursors.up.isDown) {
+            } else if (this.cursors.up.isDown || this.cursorsWSAD.up.isDown) {
                 this.body.velocity.y -= this.speed;
             }
 
@@ -550,11 +594,15 @@ var Player = (function (_Phaser$Sprite) {
     }, {
         key: 'onlineUpdate',
         value: function onlineUpdate() {
-            GLOBAL.manager.broadcast({
-                type: 'position',
-                posX: parseInt(this.position.x),
-                posY: parseInt(this.position.y)
-            });
+            if (this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y) {
+                GLOBAL.manager.broadcast({
+                    type: 'position',
+                    posX: parseInt(this.position.x),
+                    posY: parseInt(this.position.y)
+                });
+
+                this.lastOnlinePosition = new Phaser.Point(this.position.x, this.position.y);
+            }
         }
     }]);
 
