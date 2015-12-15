@@ -101,14 +101,15 @@ export default class Player extends Phaser.Sprite{
         }
 
         this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
             bullet.kill();
         });
 
         this.onlineUpdate();
     }
 
-    onlineUpdate(){
-        if(this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y){
+    onlineUpdate(updatePositionRequest){
+        if(this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y || updatePositionRequest){
             GLOBAL.manager.broadcast({
                 type: 'position',
                 posX: parseInt(this.position.x),

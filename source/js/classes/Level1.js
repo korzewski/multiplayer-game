@@ -37,15 +37,18 @@ export default class Level1 extends Phaser.State{
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
         this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
+        this.game.events.onExplosion.add(this.addExplosion, this);
     }
 
     onUserConnected(conn){
-        if(conn.peer != GLOBAL.manager.nickname){
-            this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 80, 100, 'player', conn, this.blockedLayer);
-        }
+        this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 80, 100, 'player', conn, this.blockedLayer);
+        GLOBAL.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
+            type: 'updatePositionRequest'
+        });
     }
 
     onUserDisconnected(userName){
+        this.game.events.onExplosion.dispatch(this.connectedPlayers[userName].x, this.connectedPlayers[userName].y, 1, 1);
         this.connectedPlayers[userName].destroy();
         delete this.connectedPlayers[userName];
     }
@@ -62,6 +65,8 @@ export default class Level1 extends Phaser.State{
             this.player.addKill();
             this.addPoints(100);
             this.killsLabel.text = 'kills: ' + this.player.kills;
+        } else if(data.type == 'updatePositionRequest'){
+            this.player.onlineUpdate(true);
         }
     }
 
@@ -75,16 +80,20 @@ export default class Level1 extends Phaser.State{
                     type: 'damage',
                     damage: this.player.maxDamage
                 });
+
+                this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                 bullet.kill();
             });
 
             this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, (connPlayer, bullet) => {
+                this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                 bullet.kill();
             });
 
             for(let connectedPlayer2 in this.connectedPlayers){
                 if(connectedPlayer != connectedPlayer2){
                     this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], (connectedPlayer, bullet) => {
+                        this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                         bullet.kill();
                     });
                 }
@@ -100,6 +109,17 @@ export default class Level1 extends Phaser.State{
     addPoints(value){
         this.scores += value;
         this.scoresLabel.text = 'scores: ' + this.scores;
+    }
+
+    addExplosion(x, y, maxScale, alpha){
+        let explosion = this.game.add.sprite(x, y, 'explosion');
+        explosion.animations.add('walk');
+        explosion.animations.play('walk', 45, false, true);
+        explosion.anchor.setTo(0.5);
+        explosion.alpha = alpha || 0.8;
+
+        let randomScale = maxScale - (this.game.rnd.frac() * 0.2);
+        explosion.scale.setTo(randomScale);
     }
 
     render() {

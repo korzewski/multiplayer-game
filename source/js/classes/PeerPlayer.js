@@ -48,6 +48,7 @@ export default class PeerPlayer extends Phaser.Sprite{
 
     update(){
         this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.4);
             bullet.kill();
         });
     }

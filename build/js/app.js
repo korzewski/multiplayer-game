@@ -92,6 +92,7 @@ var Preloader = (function (_Phaser$State2) {
             this.game.load.image('coin', 'extra/img/coin.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
             this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
+            this.game.load.spritesheet('explosion', 'extra/img/explosion.png', 64, 64);
         }
     }, {
         key: 'create',
@@ -178,17 +179,20 @@ var Level1 = (function (_Phaser$State) {
             this.game.events.onUserConnected.add(this.onUserConnected, this);
             this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
             this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
+            this.game.events.onExplosion.add(this.addExplosion, this);
         }
     }, {
         key: 'onUserConnected',
         value: function onUserConnected(conn) {
-            if (conn.peer != GLOBAL.manager.nickname) {
-                this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 80, 100, 'player', conn, this.blockedLayer);
-            }
+            this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 80, 100, 'player', conn, this.blockedLayer);
+            GLOBAL.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
+                type: 'updatePositionRequest'
+            });
         }
     }, {
         key: 'onUserDisconnected',
         value: function onUserDisconnected(userName) {
+            this.game.events.onExplosion.dispatch(this.connectedPlayers[userName].x, this.connectedPlayers[userName].y, 1, 1);
             this.connectedPlayers[userName].destroy();
             delete this.connectedPlayers[userName];
         }
@@ -206,6 +210,8 @@ var Level1 = (function (_Phaser$State) {
                 this.player.addKill();
                 this.addPoints(100);
                 this.killsLabel.text = 'kills: ' + this.player.kills;
+            } else if (data.type == 'updatePositionRequest') {
+                this.player.onlineUpdate(true);
             }
         }
     }, {
@@ -222,16 +228,20 @@ var Level1 = (function (_Phaser$State) {
                         type: 'damage',
                         damage: _this.player.maxDamage
                     });
+
+                    _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                     bullet.kill();
                 });
 
                 this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, function (connPlayer, bullet) {
+                    _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                     bullet.kill();
                 });
 
                 for (var connectedPlayer2 in this.connectedPlayers) {
                     if (connectedPlayer != connectedPlayer2) {
                         this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], function (connectedPlayer, bullet) {
+                            _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                             bullet.kill();
                         });
                     }
@@ -249,6 +259,18 @@ var Level1 = (function (_Phaser$State) {
         value: function addPoints(value) {
             this.scores += value;
             this.scoresLabel.text = 'scores: ' + this.scores;
+        }
+    }, {
+        key: 'addExplosion',
+        value: function addExplosion(x, y, maxScale, alpha) {
+            var explosion = this.game.add.sprite(x, y, 'explosion');
+            explosion.animations.add('walk');
+            explosion.animations.play('walk', 45, false, true);
+            explosion.anchor.setTo(0.5);
+            explosion.alpha = alpha || 0.8;
+
+            var randomScale = maxScale - this.game.rnd.frac() * 0.2;
+            explosion.scale.setTo(randomScale);
         }
     }, {
         key: 'render',
@@ -286,6 +308,7 @@ var Manager = (function () {
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
+        GLOBAL.game.events.onExplosion = new Phaser.Signal();
 
         this.connectedPeers = [];
 
@@ -319,9 +342,7 @@ var Manager = (function () {
             _this.peer.on('connection', function (conn) {
                 conn.on('open', function () {
                     conn.on('data', function (data) {
-                        if (conn.peer != _this.nickname) {
-                            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                        }
+                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
                     });
                 });
             });
@@ -446,7 +467,10 @@ var PeerPlayer = (function (_Phaser$Sprite) {
     }, {
         key: 'update',
         value: function update() {
+            var _this = this;
+
             this.game.physics.arcade.collide(this.bullets, this.blockedLayer, function (bullet) {
+                _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.4);
                 bullet.kill();
             });
         }
@@ -568,6 +592,8 @@ var Player = (function (_Phaser$Sprite) {
     }, {
         key: 'update',
         value: function update() {
+            var _this = this;
+
             this.body.velocity.x = 0;
             this.body.velocity.y = 0;
 
@@ -586,6 +612,7 @@ var Player = (function (_Phaser$Sprite) {
             }
 
             this.game.physics.arcade.collide(this.bullets, this.blockedLayer, function (bullet) {
+                _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                 bullet.kill();
             });
 
@@ -593,8 +620,8 @@ var Player = (function (_Phaser$Sprite) {
         }
     }, {
         key: 'onlineUpdate',
-        value: function onlineUpdate() {
-            if (this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y) {
+        value: function onlineUpdate(updatePositionRequest) {
+            if (this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y || updatePositionRequest) {
                 GLOBAL.manager.broadcast({
                     type: 'position',
                     posX: parseInt(this.position.x),

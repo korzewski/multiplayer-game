@@ -4,6 +4,7 @@ export default class Manager{
         GLOBAL.game.events.onUserConnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
+        GLOBAL.game.events.onExplosion = new Phaser.Signal();
 
         this.connectedPeers = [];
 
@@ -37,9 +38,7 @@ export default class Manager{
             this.peer.on('connection', (conn) => {
                 conn.on('open', () => {
                     conn.on('data', (data) => {
-                        if(conn.peer != this.nickname){
-                            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                        }
+                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
                     });
                 });
             });
