@@ -298,10 +298,64 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
+var connectedPeer = undefined,
+    connectedPeers = [];
+
+var socketInit = function socketInit(env, port, allConnectedPeers) {
+    console.log('env: ', env);
+    console.log('port: ', port);
+    console.log('allConnectedPeers: ', allConnectedPeers);
+
+    if (env === 'production') {
+        connectedPeer = new Peer({
+            host: '/',
+            secure: true,
+            port: 443,
+            key: 'peerjs',
+            path: '/api',
+            config: {
+                'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
+            }
+        });
+    } else {
+        connectedPeer = new Peer({ host: '/', port: port, path: '/api' });
+        console.log('self connectedPeer: ', connectedPeer);
+    }
+
+    allConnectedPeers.forEach(function (peer) {
+        connectWithNewPeer(peer.peerID);
+    });
+
+    connectedPeer.on('connection', onConnection);
+};
+
+var onConnection = function onConnection(conn) {
+    conn.on('open', function () {
+        conn.on('data', function (data) {
+            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+        });
+    });
+};
+
+var connectWithNewPeer = function connectWithNewPeer(newPeerID) {
+    if (newPeerID != connectedPeer.peer) {
+        (function () {
+            var conn = connectedPeer.connect(newPeerID);
+            conn.on('open', function () {
+                connectedPeers.push(conn);
+                GLOBAL.game.events.onUserConnected.dispatch(conn);
+            });
+        })();
+    }
+};
+
+var onUserConnected = function onUserConnected(newUser) {
+    console.log('onUserConnected: ', newUser);
+    connectWithNewPeer(newUser);
+};
+
 var Manager = (function () {
     function Manager() {
-        var _this = this;
-
         _classCallCheck(this, Manager);
 
         if (!GLOBAL.game.events) GLOBAL.game.events = {};
@@ -310,48 +364,10 @@ var Manager = (function () {
         GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
         GLOBAL.game.events.onExplosion = new Phaser.Signal();
 
-        this.connectedPeers = [];
-
         var socket = io();
-        socket.on('env', function (env, port, allConnectedPeers) {
-            console.log('env: ', env);
-            console.log('port: ', port);
-            console.log('allConnectedPeers: ', allConnectedPeers);
+        socket.on('env', socketInit);
 
-            if (env === 'production') {
-                _this.peer = new Peer({
-                    host: '/',
-                    secure: true,
-                    port: 443,
-                    key: 'peerjs',
-                    path: '/api',
-                    config: {
-                        'iceServers': [{ url: 'stun:stun.l.google.com:19302' }]
-                    }
-                });
-            } else {
-                _this.peer = new Peer({ host: '/', port: port, path: '/api' });
-                console.log('peer: ', _this.peer);
-            }
-
-            _this.peerID = _this.peer.peer;
-            allConnectedPeers.forEach(function (peerObject) {
-                _this.connectWithNewPeer(peerObject.peerID);
-            });
-
-            _this.peer.on('connection', function (conn) {
-                conn.on('open', function () {
-                    conn.on('data', function (data) {
-                        GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-                    });
-                });
-            });
-        });
-
-        socket.on('user-connected', function (newUser) {
-            console.log('user-connected: ', newUser);
-            _this.connectWithNewPeer(newUser);
-        });
+        socket.on('user-connected', onUserConnected);
 
         socket.on('user-disconnected', function (disconnectedUser) {
             console.log('user-disconnected: ', disconnectedUser);
@@ -360,24 +376,9 @@ var Manager = (function () {
     }
 
     _createClass(Manager, [{
-        key: 'connectWithNewPeer',
-        value: function connectWithNewPeer(newUser) {
-            var _this2 = this;
-
-            if (newUser != this.peerID) {
-                (function () {
-                    var conn = _this2.peer.connect(newUser);
-                    conn.on('open', function () {
-                        _this2.connectedPeers.push(conn);
-                        GLOBAL.game.events.onUserConnected.dispatch(conn);
-                    });
-                })();
-            }
-        }
-    }, {
         key: 'broadcast',
         value: function broadcast(data) {
-            this.connectedPeers.forEach(function (peer, index) {
+            connectedPeers.forEach(function (peer) {
                 peer.send(data);
             });
         }

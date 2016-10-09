@@ -1,31 +1,28 @@
 {
-  "name": "react-starter",
+  "name": "es6",
   "version": "1.0.0",
   "description": "",
   "main": "gulp.js",
-  "dependencies": {
+  "dependencies": {},
+  "scripts": {
+    "dev": "node index.js & gulp"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
     "babelify": "^6.3.0",
     "browserify": "^11.2.0",
-    "express": "^4.13.3",
+    "express": "^4.14.0",
     "gulp": "^3.9.0",
     "gulp-babel": "^5.2.1",
     "gulp-sass": "^2.0.4",
     "gulp-sourcemaps": "^1.6.0",
-    "jquery": "^2.1.4",
-    "openport": "0.0.4",
+    "node-sass": "^3.10.1",
     "peer": "^0.2.8",
-    "react": "^0.14.0",
-    "react-dom": "^0.14.0",
-    "socket.io": "^1.3.7",
-    "socket.io-client": "^1.3.7",
+    "socket.io": "^1.5.0",
+    "socket.io-client": "^1.5.0",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0",
-    "watchify": "^3.4.0",
-    "ws": "^0.8.1"
-  },
-  "scripts": {
-    "start": "node index.js"
-  },
-  "author": "",
-  "license": "ISC"
+    "watchify": "^3.4.0"
+  }
 }
