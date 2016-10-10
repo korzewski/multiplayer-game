@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "gulp.js",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.14.0"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js & gulp"
@@ -13,7 +15,6 @@
   "devDependencies": {
     "babelify": "^6.3.0",
     "browserify": "^11.2.0",
-    "express": "^4.14.0",
     "gulp": "^3.9.0",
     "gulp-babel": "^5.2.1",
     "gulp-sass": "^2.0.4",
