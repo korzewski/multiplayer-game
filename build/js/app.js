@@ -11,9 +11,9 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _classesLevel1 = require('./classes/Level1');
+var _classesGame = require('./classes/Game');
 
-var _classesLevel12 = _interopRequireDefault(_classesLevel1);
+var _classesGame2 = _interopRequireDefault(_classesGame);
 
 var _classesManager = require('./classes/Manager');
 
@@ -28,7 +28,7 @@ var Init = (function (_Phaser$Game) {
         _get(Object.getPrototypeOf(Init.prototype), 'constructor', this).call(this, GLOBAL.width, GLOBAL.height, Phaser.AUTO, 'game');
         this.state.add('Boot', Boot, false);
         this.state.add('Preloader', Preloader, false);
-        this.state.add('Level1', _classesLevel12['default'], false);
+        this.state.add('Game', _classesGame2['default'], false);
         this.state.start('Boot');
     }
 
@@ -99,7 +99,7 @@ var Preloader = (function (_Phaser$State2) {
         value: function create() {
             GLOBAL.game = this.game;
             GLOBAL.manager = new _classesManager2['default']();
-            this.game.state.start('Level1');
+            this.game.state.start('Game');
         }
     }]);
 
@@ -108,7 +108,7 @@ var Preloader = (function (_Phaser$State2) {
 
 new Init();
 
-},{"./classes/Level1":2,"./classes/Manager":3}],2:[function(require,module,exports){
+},{"./classes/Game":2,"./classes/Manager":3}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -133,16 +133,16 @@ var _PeerPlayer = require('./PeerPlayer');
 
 var _PeerPlayer2 = _interopRequireDefault(_PeerPlayer);
 
-var Level1 = (function (_Phaser$State) {
-    _inherits(Level1, _Phaser$State);
+var Game = (function (_Phaser$State) {
+    _inherits(Game, _Phaser$State);
 
-    function Level1() {
-        _classCallCheck(this, Level1);
+    function Game() {
+        _classCallCheck(this, Game);
 
-        _get(Object.getPrototypeOf(Level1.prototype), 'constructor', this).apply(this, arguments);
+        _get(Object.getPrototypeOf(Game.prototype), 'constructor', this).apply(this, arguments);
     }
 
-    _createClass(Level1, [{
+    _createClass(Game, [{
         key: 'create',
         value: function create() {
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -281,10 +281,10 @@ var Level1 = (function (_Phaser$State) {
         }
     }]);
 
-    return Level1;
+    return Game;
 })(Phaser.State);
 
-exports['default'] = Level1;
+exports['default'] = Game;
 module.exports = exports['default'];
 
 },{"./PeerPlayer":4,"./Player":5}],3:[function(require,module,exports){
@@ -298,16 +298,15 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var connectedPeer = undefined,
+var selfPeer = undefined,
     connectedPeers = [];
 
-var socketInit = function socketInit(env, port, allConnectedPeers) {
-    console.log('env: ', env);
-    console.log('port: ', port);
-    console.log('allConnectedPeers: ', allConnectedPeers);
+var onServerDetails = function onServerDetails(env, port, roomPeers) {
+    console.log('env: ' + env + ' | port: ' + port);
+    console.log('roomPeers: ', roomPeers);
 
     if (env === 'production') {
-        connectedPeer = new Peer({
+        selfPeer = new Peer({
             host: '/',
             secure: true,
             port: 443,
@@ -318,15 +317,15 @@ var socketInit = function socketInit(env, port, allConnectedPeers) {
             }
         });
     } else {
-        connectedPeer = new Peer({ host: '/', port: port, path: '/api' });
-        console.log('self connectedPeer: ', connectedPeer);
+        selfPeer = new Peer({ host: '/', port: port, path: '/api' });
+        console.log('selfPeer: ', selfPeer);
     }
 
-    allConnectedPeers.forEach(function (peer) {
-        connectWithNewPeer(peer.peerID);
+    roomPeers.forEach(function (peer) {
+        connectToPeer(peer.peerID);
     });
 
-    connectedPeer.on('connection', onConnection);
+    selfPeer.on('connection', onConnection);
 };
 
 var onConnection = function onConnection(conn) {
@@ -337,10 +336,10 @@ var onConnection = function onConnection(conn) {
     });
 };
 
-var connectWithNewPeer = function connectWithNewPeer(newPeerID) {
-    if (newPeerID != connectedPeer.peer) {
+var connectToPeer = function connectToPeer(peerID) {
+    if (peerID != selfPeer.peer) {
         (function () {
-            var conn = connectedPeer.connect(newPeerID);
+            var conn = selfPeer.connect(peerID);
             conn.on('open', function () {
                 connectedPeers.push(conn);
                 GLOBAL.game.events.onUserConnected.dispatch(conn);
@@ -349,30 +348,34 @@ var connectWithNewPeer = function connectWithNewPeer(newPeerID) {
     }
 };
 
-var onUserConnected = function onUserConnected(newUser) {
-    console.log('onUserConnected: ', newUser);
-    connectWithNewPeer(newUser);
+var onUserConnected = function onUserConnected(user) {
+    console.log('onUserConnected: ', user);
+    connectToPeer(user);
+};
+
+var onUserDisconnected = function onUserDisconnected(user) {
+    console.log('onUserDisconnected: ', user);
+    GLOBAL.game.events.onUserDisconnected.dispatch(user);
+};
+
+var initEvents = function initEvents() {
+    GLOBAL.game.events = GLOBAL.game.events || {};
+    GLOBAL.game.events.onUserConnected = new Phaser.Signal();
+    GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
+    GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
+    GLOBAL.game.events.onExplosion = new Phaser.Signal();
 };
 
 var Manager = (function () {
     function Manager() {
         _classCallCheck(this, Manager);
 
-        if (!GLOBAL.game.events) GLOBAL.game.events = {};
-        GLOBAL.game.events.onUserConnected = new Phaser.Signal();
-        GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
-        GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
-        GLOBAL.game.events.onExplosion = new Phaser.Signal();
+        initEvents();
 
         var socket = io();
-        socket.on('env', socketInit);
-
+        socket.on('env', onServerDetails);
         socket.on('user-connected', onUserConnected);
-
-        socket.on('user-disconnected', function (disconnectedUser) {
-            console.log('user-disconnected: ', disconnectedUser);
-            GLOBAL.game.events.onUserDisconnected.dispatch(disconnectedUser);
-        });
+        socket.on('user-disconnected', onUserDisconnected);
     }
 
     _createClass(Manager, [{
@@ -386,6 +389,11 @@ var Manager = (function () {
         key: 'sendSingleData',
         value: function sendSingleData(peer, data) {
             peer.send(data);
+        }
+    }, {
+        key: 'getConnectedPeers',
+        value: function getConnectedPeers() {
+            return connectedPeers;
         }
     }]);
 
@@ -417,24 +425,14 @@ var PeerPlayer = (function (_Phaser$Sprite) {
         _classCallCheck(this, PeerPlayer);
 
         _get(Object.getPrototypeOf(PeerPlayer.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
-
-        this.peer = peer;
-
         this.game.physics.arcade.enable(this);
-        this.anchor.setTo(0.5, 0.5);
-        this.game.add.existing(this);
-
+        this.peer = peer;
         this.blockedLayer = blockedLayer;
 
-        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-        this.bullets.createMultiple(5, 'bullet-2');
-        this.bullets.forEach(function (bullet) {
-            bullet.anchor.setTo(0.5);
-            bullet.scale.setTo(0.9);
-            bullet.smoothed = false;
-            bullet.checkWorldBounds = true;
-            bullet.outOfBoundsKill = true;
-        });
+        this.anchor.setTo(0.5, 0.5);
+        this.initBullets();
+
+        this.game.add.existing(this);
     }
 
     _createClass(PeerPlayer, [{
@@ -448,6 +446,19 @@ var PeerPlayer = (function (_Phaser$Sprite) {
 
             this.position.x = data.posX;
             this.position.y = data.posY;
+        }
+    }, {
+        key: 'initBullets',
+        value: function initBullets() {
+            this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
+            this.bullets.createMultiple(10, 'bullet-1');
+            this.bullets.forEach(function (bullet) {
+                bullet.anchor.setTo(0.5);
+                bullet.scale.setTo(0.9);
+                bullet.smoothed = false;
+                bullet.checkWorldBounds = true;
+                bullet.outOfBoundsKill = true;
+            });
         }
     }, {
         key: 'shoot',
@@ -508,44 +519,84 @@ var Player = (function (_Phaser$Sprite) {
         this.game.physics.arcade.enable(this);
         this.body.collideWorldBounds = true;
 
+        this.smoothed = false;
+        this.anchor.setTo(0.5, 0.5);
         this.blockedLayer = blockedLayer;
 
-        this.health = 100;
-        this.maxDamage = 10;
-        this.kills = 0;
-
-        this.speed = 100;
-        this.fireRate = 100;
-        this.nextFire = 0;
-        this.bulletSpeed = 200;
-
-        this.cursors = this.game.input.keyboard.createCursorKeys();
-        this.cursorsWSAD = {
-            up: this.game.input.keyboard.addKey(Phaser.Keyboard.W),
-            down: this.game.input.keyboard.addKey(Phaser.Keyboard.S),
-            left: this.game.input.keyboard.addKey(Phaser.Keyboard.A),
-            right: this.game.input.keyboard.addKey(Phaser.Keyboard.D)
-        };
-        this.game.input.onDown.add(this.fire, this);
-
-        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-        this.bullets.createMultiple(10, 'bullet-1');
-        this.bullets.forEach(function (bullet) {
-            bullet.anchor.setTo(0.5);
-            bullet.scale.setTo(0.9);
-            bullet.smoothed = false;
-            bullet.checkWorldBounds = true;
-            bullet.outOfBoundsKill = true;
-        });
+        this.initValues();
+        this.initMovement();
+        this.initBullets();
 
         this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
-
-        this.anchor.setTo(0.5, 0.5);
-        this.smoothed = false;
         this.game.add.existing(this);
     }
 
     _createClass(Player, [{
+        key: 'update',
+        value: function update() {
+            var _this = this;
+
+            this.body.velocity.x = this.body.velocity.y = 0;
+
+            if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
+                this.body.velocity.x += this.speed;
+                this.scale.x = -1;
+            } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
+                this.body.velocity.x -= this.speed;
+                this.scale.x = 1;
+            }
+
+            if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
+                this.body.velocity.y += this.speed;
+            } else if (this.cursors.up.isDown || this.cursorsWSAD.up.isDown) {
+                this.body.velocity.y -= this.speed;
+            }
+
+            this.game.physics.arcade.collide(this.bullets, this.blockedLayer, function (bullet) {
+                _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+                bullet.kill();
+            });
+
+            this.onlineUpdate();
+        }
+    }, {
+        key: 'initValues',
+        value: function initValues() {
+            this.health = 100;
+            this.maxDamage = 10;
+            this.kills = 0;
+
+            this.speed = 100;
+            this.fireRate = 100;
+            this.nextFire = 0;
+            this.bulletSpeed = 200;
+        }
+    }, {
+        key: 'initMovement',
+        value: function initMovement() {
+            this.cursors = this.game.input.keyboard.createCursorKeys();
+            this.cursorsWSAD = {
+                up: this.game.input.keyboard.addKey(Phaser.Keyboard.W),
+                down: this.game.input.keyboard.addKey(Phaser.Keyboard.S),
+                left: this.game.input.keyboard.addKey(Phaser.Keyboard.A),
+                right: this.game.input.keyboard.addKey(Phaser.Keyboard.D)
+            };
+            this.game.input.onDown.add(this.fire, this);
+        }
+    }, {
+        key: 'initBullets',
+        value: function initBullets() {
+            this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
+            this.bullets.createMultiple(10, 'bullet-1');
+            this.bullets.forEach(function (bullet) {
+                bullet.anchor.setTo(0.5);
+                bullet.scale.setTo(0.9);
+                bullet.smoothed = false;
+                bullet.checkWorldBounds = true;
+                bullet.outOfBoundsKill = true;
+            });
+        }
+    }, {
         key: 'fire',
         value: function fire() {
             if (this.game.time.now > this.nextFire && this.bullets.countDead() > 0) {
@@ -589,35 +640,6 @@ var Player = (function (_Phaser$Sprite) {
                 type: 'kill'
             });
             window.location.reload();
-        }
-    }, {
-        key: 'update',
-        value: function update() {
-            var _this = this;
-
-            this.body.velocity.x = 0;
-            this.body.velocity.y = 0;
-
-            if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
-                this.body.velocity.x += this.speed;
-                this.scale.x = -1;
-            } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
-                this.body.velocity.x -= this.speed;
-                this.scale.x = 1;
-            }
-
-            if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
-                this.body.velocity.y += this.speed;
-            } else if (this.cursors.up.isDown || this.cursorsWSAD.up.isDown) {
-                this.body.velocity.y -= this.speed;
-            }
-
-            this.game.physics.arcade.collide(this.bullets, this.blockedLayer, function (bullet) {
-                _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                bullet.kill();
-            });
-
-            this.onlineUpdate();
         }
     }, {
         key: 'onlineUpdate',
