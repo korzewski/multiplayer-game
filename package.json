@@ -5,6 +5,7 @@
   "main": "gulp.js",
   "dependencies": {},
   "scripts": {
+    "start": "node index.js",
     "dev": "node index.js & gulp"
   },
   "author": "",
