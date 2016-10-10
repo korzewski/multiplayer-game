@@ -1,7 +1,7 @@
 import Player from './Player';
 import PeerPlayer from './PeerPlayer';
 
-export default class Level1 extends Phaser.State{
+export default class Game extends Phaser.State{
     create(){
         this.game.physics.startSystem(Phaser.Physics.ARCADE);
 

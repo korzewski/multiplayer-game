@@ -1,13 +1,12 @@
-let connectedPeer,
+let selfPeer,
     connectedPeers = [];
 
-const socketInit = (env, port, allConnectedPeers) => {
-    console.log('env: ', env);
-    console.log('port: ', port);
-    console.log('allConnectedPeers: ', allConnectedPeers);
+const onServerDetails = (env, port, roomPeers) => {
+    console.log(`env: ${env} | port: ${port}`);
+    console.log('roomPeers: ', roomPeers);
 
-    if (env === 'production'){
-        connectedPeer = new Peer({
+    if(env === 'production') {
+        selfPeer = new Peer({
             host:'/',
             secure:true,
             port:443,
@@ -18,16 +17,16 @@ const socketInit = (env, port, allConnectedPeers) => {
             }
         });
     } else {
-        connectedPeer = new Peer({host: '/', port: port, path: '/api'});
-        console.log('self connectedPeer: ', connectedPeer);
+        selfPeer = new Peer({host: '/', port: port, path: '/api'});
+        console.log('selfPeer: ', selfPeer);
     }
 
-    allConnectedPeers.forEach((peer) => {
-        connectWithNewPeer(peer.peerID);
+    roomPeers.forEach((peer) => {
+        connectToPeer(peer.peerID);
     });
 
-    connectedPeer.on('connection', onConnection);
-};
+    selfPeer.on('connection', onConnection);
+}
 
 const onConnection = (conn) => {
     conn.on('open', () => {
@@ -35,40 +34,44 @@ const onConnection = (conn) => {
             GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
         });
     });
-};
+}
 
-const connectWithNewPeer = (newPeerID) =>{
-    if(newPeerID != connectedPeer.peer){
-        let conn = connectedPeer.connect(newPeerID);
+const connectToPeer = (peerID) =>{
+    if(peerID != selfPeer.peer){
+        let conn = selfPeer.connect(peerID);
         conn.on('open', () => {
             connectedPeers.push(conn);
             GLOBAL.game.events.onUserConnected.dispatch(conn);
         });
     }
-};
-
-const onUserConnected = (newUser) => {
-    console.log('onUserConnected: ', newUser);
-    connectWithNewPeer(newUser);
 }
 
-export default class Manager{
+const onUserConnected = (user) => {
+    console.log('onUserConnected: ', user);
+    connectToPeer(user);
+}
+
+const onUserDisconnected = (user) => {
+    console.log('onUserDisconnected: ', user);
+    GLOBAL.game.events.onUserDisconnected.dispatch(user);
+}
+
+const initEvents = () => {
+    GLOBAL.game.events = GLOBAL.game.events || {};
+    GLOBAL.game.events.onUserConnected = new Phaser.Signal();
+    GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
+    GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
+    GLOBAL.game.events.onExplosion = new Phaser.Signal();
+}
+
+export default class Manager {
     constructor(){
-        if (!GLOBAL.game.events) GLOBAL.game.events = {};
-        GLOBAL.game.events.onUserConnected = new Phaser.Signal();
-        GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
-        GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
-        GLOBAL.game.events.onExplosion = new Phaser.Signal();
+        initEvents();
 
-        var socket = io();
-        socket.on('env', socketInit);
-
+        const socket = io();
+        socket.on('env', onServerDetails);
         socket.on('user-connected', onUserConnected);
-
-        socket.on('user-disconnected', (disconnectedUser) => {
-            console.log('user-disconnected: ', disconnectedUser);
-            GLOBAL.game.events.onUserDisconnected.dispatch(disconnectedUser);
-        });
+        socket.on('user-disconnected', onUserDisconnected);
     }
 
     broadcast(data) {
@@ -79,6 +82,10 @@ export default class Manager{
 
     sendSingleData(peer, data) {
         peer.send(data);
+    }
+
+    getConnectedPeers() {
+        return connectedPeers;
     }
 }
 

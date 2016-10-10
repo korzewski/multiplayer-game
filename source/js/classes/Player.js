@@ -4,8 +4,44 @@ export default class Player extends Phaser.Sprite{
         this.game.physics.arcade.enable(this);
         this.body.collideWorldBounds = true;
 
+        this.smoothed = false;
+        this.anchor.setTo(0.5, 0.5);
         this.blockedLayer = blockedLayer;
 
+        this.initValues();
+        this.initMovement();
+        this.initBullets();
+
+        this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
+        this.game.add.existing(this);
+    }
+
+    update(){
+        this.body.velocity.x = this.body.velocity.y = 0;
+
+        if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
+            this.body.velocity.x += this.speed;
+            this.scale.x = -1;
+        } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
+            this.body.velocity.x -= this.speed;
+            this.scale.x = 1;
+        }
+
+        if(this.cursors.down.isDown || this.cursorsWSAD.down.isDown){
+            this.body.velocity.y += this.speed;
+        } else if(this.cursors.up.isDown || this.cursorsWSAD.up.isDown){
+            this.body.velocity.y -= this.speed;
+        }
+
+        this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+            bullet.kill();
+        });
+
+        this.onlineUpdate();
+    }
+
+    initValues() {
         this.health = 100;
         this.maxDamage = 10;
         this.kills = 0;
@@ -14,7 +50,9 @@ export default class Player extends Phaser.Sprite{
         this.fireRate = 100;
         this.nextFire = 0;
         this.bulletSpeed = 200;
+    }
 
+    initMovement() {
         this.cursors = this.game.input.keyboard.createCursorKeys();
         this.cursorsWSAD = {
             up: this.game.input.keyboard.addKey(Phaser.Keyboard.W),
@@ -23,7 +61,9 @@ export default class Player extends Phaser.Sprite{
             right: this.game.input.keyboard.addKey(Phaser.Keyboard.D),
         };
         this.game.input.onDown.add(this.fire, this);
+    }
 
+    initBullets() {
         this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
         this.bullets.createMultiple(10, 'bullet-1');
         this.bullets.forEach((bullet) => {
@@ -33,12 +73,6 @@ export default class Player extends Phaser.Sprite{
             bullet.checkWorldBounds = true;
             bullet.outOfBoundsKill = true;
         });
-
-        this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
-
-        this.anchor.setTo(0.5, 0.5);
-        this.smoothed = false;
-        this.game.add.existing(this);
     }
 
     fire(){
@@ -80,32 +114,6 @@ export default class Player extends Phaser.Sprite{
             type: 'kill'
         });
         window.location.reload();
-    }
-
-    update(){
-        this.body.velocity.x = 0;
-        this.body.velocity.y = 0;
-
-        if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
-            this.body.velocity.x += this.speed;
-            this.scale.x = -1;
-        } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
-            this.body.velocity.x -= this.speed;
-            this.scale.x = 1;
-        }
-
-        if(this.cursors.down.isDown || this.cursorsWSAD.down.isDown){
-            this.body.velocity.y += this.speed;
-        } else if(this.cursors.up.isDown || this.cursorsWSAD.up.isDown){
-            this.body.velocity.y -= this.speed;
-        }
-
-        this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
-            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-            bullet.kill();
-        });
-
-        this.onlineUpdate();
     }
 
     onlineUpdate(updatePositionRequest){

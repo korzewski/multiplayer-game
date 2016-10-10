@@ -1,24 +1,14 @@
 export default class PeerPlayer extends Phaser.Sprite{
     constructor(game, posX, posY, spriteName, peer, blockedLayer) {
         super(game, posX, posY, spriteName);
-
-        this.peer = peer;
-
         this.game.physics.arcade.enable(this);
-        this.anchor.setTo(0.5, 0.5);
-        this.game.add.existing(this);
-
+        this.peer = peer;
         this.blockedLayer = blockedLayer;
 
-        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-        this.bullets.createMultiple(5, 'bullet-2');
-        this.bullets.forEach((bullet) => {
-            bullet.anchor.setTo(0.5);
-            bullet.scale.setTo(0.9);
-            bullet.smoothed = false;
-            bullet.checkWorldBounds = true;
-            bullet.outOfBoundsKill = true;
-        });
+        this.anchor.setTo(0.5, 0.5);
+        this.initBullets();
+
+        this.game.add.existing(this);
     }
 
     updatePosition(data){
@@ -30,6 +20,18 @@ export default class PeerPlayer extends Phaser.Sprite{
 
         this.position.x = data.posX;
         this.position.y = data.posY;
+    }
+
+    initBullets() {
+        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
+        this.bullets.createMultiple(10, 'bullet-1');
+        this.bullets.forEach((bullet) => {
+            bullet.anchor.setTo(0.5);
+            bullet.scale.setTo(0.9);
+            bullet.smoothed = false;
+            bullet.checkWorldBounds = true;
+            bullet.outOfBoundsKill = true;
+        });
     }
 
     shoot(data){
