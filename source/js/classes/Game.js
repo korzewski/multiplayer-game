@@ -42,7 +42,8 @@ export default class Game extends Phaser.State{
 
     onUserConnected(conn){
         this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 80, 100, 'player', conn, this.blockedLayer);
-        GLOBAL.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
+        console.log('this.connectedPlayers: ', this.connectedPlayers);
+        this.game.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
             type: 'updatePositionRequest'
         });
     }
@@ -76,7 +77,7 @@ export default class Game extends Phaser.State{
 
         for(let connectedPlayer in this.connectedPlayers){
             this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer], this.player.bullets, (connPlayer, bullet) => {
-                GLOBAL.manager.sendSingleData(connPlayer.peer, {
+                this.game.manager.sendSingleData(connPlayer.peer, {
                     type: 'damage',
                     damage: this.player.maxDamage
                 });

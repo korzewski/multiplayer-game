@@ -1,9 +1,15 @@
-let selfPeer,
-    connectedPeers = [];
+let socket,
+    selfPeer,
+    connectedPeers = [],
+    context;
 
-const onServerDetails = (env, port, roomPeers) => {
+const onRoomsList = (rooms) => {
+    context.game.events.onRoomsList.dispatch(rooms);
+}
+
+const onRoomConnected = (env, port) => {
+    context.game.state.start('Game');
     console.log(`env: ${env} | port: ${port}`);
-    console.log('roomPeers: ', roomPeers);
 
     if(env === 'production') {
         selfPeer = new Peer({
@@ -18,8 +24,40 @@ const onServerDetails = (env, port, roomPeers) => {
         });
     } else {
         selfPeer = new Peer({host: '/', port: port, path: '/api'});
-        console.log('selfPeer: ', selfPeer);
+        console.log('--- selfPeer: ', selfPeer);
     }
+
+    // roomPeers.forEach((peer) => {
+    //     connectToPeer(peer.peerID);
+    // });
+
+    // selfPeer.on('connection', onConnection);
+}
+
+const onConnection = (conn) => {
+    conn.on('open', () => {
+        conn.on('data', (data) => {
+            context.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+        });
+    });
+}
+
+const connectToPeer = (peerID) => {
+    console.log('connectedPeers selfPeer: ', selfPeer);
+    if(selfPeer.peer !== peerID){
+        let conn = selfPeer.connect(peerID);
+        console.log('connect to peer: ', peerID);
+        conn.on('open', () => {
+            connectedPeers.push(conn);
+            console.log('---- dispatch');
+            context.game.events.onUserConnected.dispatch(conn);
+        });
+    }
+}
+
+const onPeerConnected = (peerID) => {
+    // console.log('onUserConnected: ', user);
+    // connectToPeer(user);
 
     roomPeers.forEach((peer) => {
         connectToPeer(peer.peerID);
@@ -28,50 +66,47 @@ const onServerDetails = (env, port, roomPeers) => {
     selfPeer.on('connection', onConnection);
 }
 
-const onConnection = (conn) => {
-    conn.on('open', () => {
-        conn.on('data', (data) => {
-            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-        });
-    });
-}
-
-const connectToPeer = (peerID) =>{
-    if(peerID != selfPeer.peer){
-        let conn = selfPeer.connect(peerID);
-        conn.on('open', () => {
-            connectedPeers.push(conn);
-            GLOBAL.game.events.onUserConnected.dispatch(conn);
-        });
-    }
-}
-
-const onUserConnected = (user) => {
-    console.log('onUserConnected: ', user);
-    connectToPeer(user);
-}
-
 const onUserDisconnected = (user) => {
     console.log('onUserDisconnected: ', user);
-    GLOBAL.game.events.onUserDisconnected.dispatch(user);
+    context.game.events.onUserDisconnected.dispatch(user);
 }
 
 const initEvents = () => {
-    GLOBAL.game.events = GLOBAL.game.events || {};
-    GLOBAL.game.events.onUserConnected = new Phaser.Signal();
-    GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
-    GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
-    GLOBAL.game.events.onExplosion = new Phaser.Signal();
+    context.game.playerName = '';
+    while(context.game.playerName === '') {
+        context.game.playerName = prompt('Please enter your name', localStorage.getItem('playerName') || '');
+    }
+    localStorage.setItem('playerName', context.game.playerName);
+    console.log('playerName: ', context.game.playerName);
+
+    context.game.events = context.game.events || {};
+    context.game.events.onUserConnected = new Phaser.Signal();
+    context.game.events.onUserDisconnected = new Phaser.Signal();
+    context.game.events.onUserDataUpdate = new Phaser.Signal();
+    context.game.events.onExplosion = new Phaser.Signal();
+    context.game.events.onRoomsList = new Phaser.Signal();
 }
 
 export default class Manager {
-    constructor(){
-        initEvents();
+    constructor(ctx){
+        context = ctx;
+        initEvents(context);
+    }
 
-        const socket = io();
-        socket.on('env', onServerDetails);
-        socket.on('user-connected', onUserConnected);
+    connect() {
+        socket = io();
+        socket.on('rooms-list', onRoomsList);
+        socket.on('room-connected', onRoomConnected);
+        socket.on('peer-connected', onPeerConnected);
         socket.on('user-disconnected', onUserDisconnected);
+    }
+
+    updateRoomsList() {
+        socket.emit('get-rooms-list');
+    }
+
+    changeRoom(roomName) {
+        socket.emit('change-room', roomName, context.game.playerName);
     }
 
     broadcast(data) {

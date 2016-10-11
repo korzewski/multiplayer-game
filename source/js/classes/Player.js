@@ -90,7 +90,7 @@ export default class Player extends Phaser.Sprite{
                 y: parseInt(bullet.y)
             };
 
-            GLOBAL.manager.broadcast({
+            this.game.manager.broadcast({
                 type: 'shoot',
                 bullet: shootInfo
             });
@@ -110,7 +110,7 @@ export default class Player extends Phaser.Sprite{
 
     gameOver(connectedPlayer){
         console.log('killed by: ', connectedPlayer);
-        GLOBAL.manager.sendSingleData(connectedPlayer.peer, {
+        this.game.manager.sendSingleData(connectedPlayer.peer, {
             type: 'kill'
         });
         window.location.reload();
@@ -118,7 +118,7 @@ export default class Player extends Phaser.Sprite{
 
     onlineUpdate(updatePositionRequest){
         if(this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y || updatePositionRequest){
-            GLOBAL.manager.broadcast({
+            this.game.manager.broadcast({
                 type: 'position',
                 posX: parseInt(this.position.x),
                 posY: parseInt(this.position.y)

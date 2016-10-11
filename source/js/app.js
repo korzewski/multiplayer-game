@@ -1,4 +1,5 @@
-import Game from './classes/Game'
+import Menu from './classes/Menu';
+import Game from './classes/Game';
 import Manager from './classes/Manager';
 
 class Init extends Phaser.Game {
@@ -6,6 +7,7 @@ class Init extends Phaser.Game {
         super(GLOBAL.width, GLOBAL.height, Phaser.AUTO, 'game');
         this.state.add('Boot', Boot, false);
         this.state.add('Preloader', Preloader, false);
+        this.state.add('Menu', Menu, false);
         this.state.add('Game', Game, false);
         this.state.start('Boot');
     }
@@ -49,9 +51,8 @@ class Preloader extends Phaser.State{
     }
 
     create(){
-        GLOBAL.game = this.game;
-        GLOBAL.manager = new Manager();
-        this.game.state.start('Game');
+        this.game.manager = new Manager(this);
+        this.game.state.start('Menu');
     }
 
 }
