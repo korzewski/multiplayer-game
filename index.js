@@ -16,4 +16,9 @@ app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/build/index.html`);
 });
 
+app.get('/getServerInfo', (req, res) => {
+	let serverInfo = { env: app.get('env'), port: app.get('port') };
+    res.json(serverInfo);
+});
+
 manager.init(app, server);
