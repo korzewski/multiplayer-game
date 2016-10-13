@@ -52,7 +52,6 @@ class Preloader extends Phaser.State{
 
     create(){
         this.game.manager = new Manager(this);
-        this.game.state.start('Menu');
     }
 
 }

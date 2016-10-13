@@ -48,12 +48,15 @@ function joinRoom(roomName) {
             this.join(newRoom.name);
             this.room = newRoom.name;
 
-            newRoom.players.push({ peerID: this.peerID, name: this.playerName });
+            const newPlayer = { peerID: this.peerID, name: this.playerName };
+
+            newRoom.players.push(newPlayer);
             console.log(this.playerName + ' joined to ' + newRoom.name);
             console.log(newRoom.name + ' players: ', newRoom.players);
 
             if(roomName !== defaultRoom) {
                 this.emit('room-connected', newRoom.players);
+                io.to(newRoom.name).emit('player-joined-to-room', newPlayer);
             }
         }
 
@@ -89,6 +92,7 @@ function removeFromRoom() {
 }
 
 function onDisconnect() {
+    io.to(this.room).emit('player-leave-a-room', this.peerID);
     removePlayer.call(this);
 }
 

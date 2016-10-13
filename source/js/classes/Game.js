@@ -18,7 +18,7 @@ export default class Game extends Phaser.State{
         this.player = new Player(this.game, 80, 100, 'player', this.blockedLayer);
         this.game.camera.follow(this.player);
 
-        this.connectedPlayers = {};
+        // this.connectedPlayers = {};
 
         this.scores = 0;
         this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
@@ -37,30 +37,31 @@ export default class Game extends Phaser.State{
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
         this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
+
+        this.game.events.onExplosion = new Phaser.Signal();
         this.game.events.onExplosion.add(this.addExplosion, this);
     }
 
-    onUserConnected(conn){
-        this.connectedPlayers[conn.peer] = new PeerPlayer(this.game, 80, 100, 'player', conn, this.blockedLayer);
-        console.log('this.connectedPlayers: ', this.connectedPlayers);
-        this.game.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
+    onUserConnected(connectedPlayer){
+        connectedPlayer.gameObject = new PeerPlayer(this.game, 80, 100, 'player', connectedPlayer.peer, this.blockedLayer);
+
+        this.game.manager.sendSingleData(connectedPlayer.peer, {
             type: 'updatePositionRequest'
         });
     }
 
-    onUserDisconnected(userName){
-        this.game.events.onExplosion.dispatch(this.connectedPlayers[userName].x, this.connectedPlayers[userName].y, 1, 1);
-        this.connectedPlayers[userName].destroy();
-        delete this.connectedPlayers[userName];
+    onUserDisconnected(player){
+        this.game.events.onExplosion.dispatch(player.gameObject.x, player.gameObject.y, 1, 1);
+        player.gameObject.destroy();
     }
 
-    onUserDataUpdate(peerName, data){
+    onUserDataUpdate(peerID, data){
         if(data.type == 'position'){
-            this.connectedPlayers[peerName].updatePosition(data);
+            this.game.connectedPlayers[peerID].gameObject.updatePosition(data);
         } else if(data.type == 'shoot'){
-            this.connectedPlayers[peerName].shoot(data);
+            this.game.connectedPlayers[peerID].gameObject.shoot(data);
         } else if(data.type == 'damage'){
-            this.player.addDamage(data, this.connectedPlayers[peerName]);
+            this.player.addDamage(data, this.game.connectedPlayers[peerID]);
             this.healthLabel.text = 'health: ' + this.player.health;
         } else if(data.type == 'kill'){
             this.player.addKill();
@@ -75,8 +76,8 @@ export default class Game extends Phaser.State{
         this.game.physics.arcade.collide(this.player, this.blockedLayer);
         this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
-        for(let connectedPlayer in this.connectedPlayers){
-            this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer], this.player.bullets, (connPlayer, bullet) => {
+        for(let connectedPlayer in this.game.connectedPlayers){
+            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer], this.player.bullets, (connPlayer, bullet) => {
                 this.game.manager.sendSingleData(connPlayer.peer, {
                     type: 'damage',
                     damage: this.player.maxDamage
@@ -86,14 +87,14 @@ export default class Game extends Phaser.State{
                 bullet.kill();
             });
 
-            this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, (connPlayer, bullet) => {
+            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.player, (connPlayer, bullet) => {
                 this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                 bullet.kill();
             });
 
-            for(let connectedPlayer2 in this.connectedPlayers){
+            for(let connectedPlayer2 in this.game.connectedPlayers){
                 if(connectedPlayer != connectedPlayer2){
-                    this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], (connectedPlayer, bullet) => {
+                    this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.game.connectedPlayers[connectedPlayer2], (connectedPlayer, bullet) => {
                         this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                         bullet.kill();
                     });

@@ -11,6 +11,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+var _classesMenu = require('./classes/Menu');
+
+var _classesMenu2 = _interopRequireDefault(_classesMenu);
+
 var _classesGame = require('./classes/Game');
 
 var _classesGame2 = _interopRequireDefault(_classesGame);
@@ -28,6 +32,7 @@ var Init = (function (_Phaser$Game) {
         _get(Object.getPrototypeOf(Init.prototype), 'constructor', this).call(this, GLOBAL.width, GLOBAL.height, Phaser.AUTO, 'game');
         this.state.add('Boot', Boot, false);
         this.state.add('Preloader', Preloader, false);
+        this.state.add('Menu', _classesMenu2['default'], false);
         this.state.add('Game', _classesGame2['default'], false);
         this.state.start('Boot');
     }
@@ -97,9 +102,7 @@ var Preloader = (function (_Phaser$State2) {
     }, {
         key: 'create',
         value: function create() {
-            GLOBAL.game = this.game;
-            GLOBAL.manager = new _classesManager2['default']();
-            this.game.state.start('Game');
+            this.game.manager = new _classesManager2['default'](this);
         }
     }]);
 
@@ -108,7 +111,7 @@ var Preloader = (function (_Phaser$State2) {
 
 new Init();
 
-},{"./classes/Game":2,"./classes/Manager":3}],2:[function(require,module,exports){
+},{"./classes/Game":2,"./classes/Manager":3,"./classes/Menu":4}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -160,7 +163,7 @@ var Game = (function (_Phaser$State) {
             this.player = new _Player2['default'](this.game, 80, 100, 'player', this.blockedLayer);
             this.game.camera.follow(this.player);
 
-            this.connectedPlayers = {};
+            // this.connectedPlayers = {};
 
             this.scores = 0;
             this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right' };
@@ -179,32 +182,34 @@ var Game = (function (_Phaser$State) {
             this.game.events.onUserConnected.add(this.onUserConnected, this);
             this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
             this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
+
+            this.game.events.onExplosion = new Phaser.Signal();
             this.game.events.onExplosion.add(this.addExplosion, this);
         }
     }, {
         key: 'onUserConnected',
-        value: function onUserConnected(conn) {
-            this.connectedPlayers[conn.peer] = new _PeerPlayer2['default'](this.game, 80, 100, 'player', conn, this.blockedLayer);
-            GLOBAL.manager.sendSingleData(this.connectedPlayers[conn.peer].peer, {
+        value: function onUserConnected(connectedPlayer) {
+            connectedPlayer.gameObject = new _PeerPlayer2['default'](this.game, 80, 100, 'player', connectedPlayer.peer, this.blockedLayer);
+
+            this.game.manager.sendSingleData(connectedPlayer.peer, {
                 type: 'updatePositionRequest'
             });
         }
     }, {
         key: 'onUserDisconnected',
-        value: function onUserDisconnected(userName) {
-            this.game.events.onExplosion.dispatch(this.connectedPlayers[userName].x, this.connectedPlayers[userName].y, 1, 1);
-            this.connectedPlayers[userName].destroy();
-            delete this.connectedPlayers[userName];
+        value: function onUserDisconnected(player) {
+            this.game.events.onExplosion.dispatch(player.gameObject.x, player.gameObject.y, 1, 1);
+            player.gameObject.destroy();
         }
     }, {
         key: 'onUserDataUpdate',
-        value: function onUserDataUpdate(peerName, data) {
+        value: function onUserDataUpdate(peerID, data) {
             if (data.type == 'position') {
-                this.connectedPlayers[peerName].updatePosition(data);
+                this.game.connectedPlayers[peerID].gameObject.updatePosition(data);
             } else if (data.type == 'shoot') {
-                this.connectedPlayers[peerName].shoot(data);
+                this.game.connectedPlayers[peerID].gameObject.shoot(data);
             } else if (data.type == 'damage') {
-                this.player.addDamage(data, this.connectedPlayers[peerName]);
+                this.player.addDamage(data, this.game.connectedPlayers[peerID]);
                 this.healthLabel.text = 'health: ' + this.player.health;
             } else if (data.type == 'kill') {
                 this.player.addKill();
@@ -222,9 +227,9 @@ var Game = (function (_Phaser$State) {
             this.game.physics.arcade.collide(this.player, this.blockedLayer);
             this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
-            for (var connectedPlayer in this.connectedPlayers) {
-                this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer], this.player.bullets, function (connPlayer, bullet) {
-                    GLOBAL.manager.sendSingleData(connPlayer.peer, {
+            for (var connectedPlayer in this.game.connectedPlayers) {
+                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer], this.player.bullets, function (connPlayer, bullet) {
+                    _this.game.manager.sendSingleData(connPlayer.peer, {
                         type: 'damage',
                         damage: _this.player.maxDamage
                     });
@@ -233,14 +238,14 @@ var Game = (function (_Phaser$State) {
                     bullet.kill();
                 });
 
-                this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.player, function (connPlayer, bullet) {
+                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.player, function (connPlayer, bullet) {
                     _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                     bullet.kill();
                 });
 
-                for (var connectedPlayer2 in this.connectedPlayers) {
+                for (var connectedPlayer2 in this.game.connectedPlayers) {
                     if (connectedPlayer != connectedPlayer2) {
-                        this.game.physics.arcade.overlap(this.connectedPlayers[connectedPlayer].bullets, this.connectedPlayers[connectedPlayer2], function (connectedPlayer, bullet) {
+                        this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.game.connectedPlayers[connectedPlayer2], function (connectedPlayer, bullet) {
                             _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                             bullet.kill();
                         });
@@ -287,7 +292,7 @@ var Game = (function (_Phaser$State) {
 exports['default'] = Game;
 module.exports = exports['default'];
 
-},{"./PeerPlayer":4,"./Player":5}],3:[function(require,module,exports){
+},{"./PeerPlayer":5,"./Player":6}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -298,14 +303,78 @@ var _createClass = (function () { function defineProperties(target, props) { for
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var selfPeer = undefined,
-    connectedPeers = [];
+var socket = undefined,
+    selfPeer = undefined,
+    connectedPlayers = {},
+    context = undefined;
 
-var onServerDetails = function onServerDetails(env, port, roomPeers) {
-    console.log('env: ' + env + ' | port: ' + port);
-    console.log('roomPeers: ', roomPeers);
+var Manager = (function () {
+    function Manager(ctx) {
+        _classCallCheck(this, Manager);
 
-    if (env === 'production') {
+        context = ctx;
+        initEvents();
+        initServerConnection();
+    }
+
+    _createClass(Manager, [{
+        key: 'updateRoomsList',
+        value: function updateRoomsList() {
+            socket.emit('get-rooms-list');
+        }
+    }, {
+        key: 'joinRoom',
+        value: function joinRoom(roomName) {
+            socket.emit('join-room', roomName, context.game.playerName);
+        }
+    }, {
+        key: 'broadcast',
+        value: function broadcast(data) {
+            for (var peerID in connectedPlayers) {
+                connectedPlayers[peerID].peer.send(data);
+            };
+        }
+    }, {
+        key: 'sendSingleData',
+        value: function sendSingleData(peer, data) {
+            peer.send(data);
+        }
+    }]);
+
+    return Manager;
+})();
+
+exports['default'] = Manager;
+
+function initIO(peerID) {
+    socket = io();
+    socket.on('rooms-list', onRoomsList);
+    socket.on('room-connected', onRoomConnected);
+    socket.on('player-joined-to-room', connectToPlayer);
+    socket.on('player-leave-a-room', disconnectPlayer);
+
+    socket.emit('new-player', peerID, context.game.playerName);
+
+    console.log('--- initIO peerID: ', peerID);
+    context.game.state.start('Menu');
+}
+
+var onRoomsList = function onRoomsList(rooms) {
+    context.game.events.onRoomsList.dispatch(rooms);
+};
+
+function initServerConnection() {
+    fetch('/getServerInfo').then(function (response) {
+        return response.json();
+    }).then(function (data) {
+        createPeer(data);
+    });
+}
+
+function createPeer(data) {
+    console.log('createPeer env: ' + data.env + ' port: ' + data.port);
+
+    if (data.env === 'production') {
         selfPeer = new Peer({
             host: '/',
             secure: true,
@@ -317,93 +386,156 @@ var onServerDetails = function onServerDetails(env, port, roomPeers) {
             }
         });
     } else {
-        selfPeer = new Peer({ host: '/', port: port, path: '/api' });
-        console.log('selfPeer: ', selfPeer);
+        selfPeer = new Peer({ host: '/', port: data.port, path: '/api' });
     }
 
-    roomPeers.forEach(function (peer) {
-        connectToPeer(peer.peerID);
-    });
+    selfPeer.on('open', onPeerOpen);
+    selfPeer.on('connection', onPlayerConnection);
+}
 
-    selfPeer.on('connection', onConnection);
-};
+function onPlayerConnection(conn) {
+    function onPlayerData(data) {
+        context.game.events.onUserDataUpdate.dispatch(conn.peer, data);
+    }
 
-var onConnection = function onConnection(conn) {
-    conn.on('open', function () {
-        conn.on('data', function (data) {
-            GLOBAL.game.events.onUserDataUpdate.dispatch(conn.peer, data);
-        });
-    });
-};
+    conn.on('data', onPlayerData);
+}
 
-var connectToPeer = function connectToPeer(peerID) {
-    if (peerID != selfPeer.peer) {
+function connectToPlayer(player) {
+    if (selfPeer.id !== player.peerID) {
         (function () {
-            var conn = selfPeer.connect(peerID);
-            conn.on('open', function () {
-                connectedPeers.push(conn);
-                GLOBAL.game.events.onUserConnected.dispatch(conn);
-            });
+            var connectionReady = function connectionReady() {
+                connectedPlayers[player.peerID] = { peer: conn, name: name };
+                context.game.events.onUserConnected.dispatch(connectedPlayers[player.peerID]);
+            };
+
+            var conn = selfPeer.connect(player.peerID);
+
+            conn.on('open', connectionReady);
         })();
     }
-};
+}
 
-var onUserConnected = function onUserConnected(user) {
-    console.log('onUserConnected: ', user);
-    connectToPeer(user);
-};
+function disconnectPlayer(peerID) {
+    var player = connectedPlayers[peerID];
+    context.game.events.onUserDisconnected.dispatch(player);
+    console.log('player disconnected: ', player);
 
-var onUserDisconnected = function onUserDisconnected(user) {
-    console.log('onUserDisconnected: ', user);
-    GLOBAL.game.events.onUserDisconnected.dispatch(user);
-};
+    delete connectedPlayers[peerID];
+    console.log('connectedPlayers: ', connectedPlayers);
+}
+
+function onPeerOpen(peerID) {
+    console.log('peer: ', this);
+    initIO(peerID);
+}
+
+function onRoomConnected(roomPlayers) {
+    context.game.state.start('Game');
+
+    roomPlayers.forEach(function (player) {
+        connectToPlayer(player);
+    });
+}
+
+// const onUserDisconnected = (user) => {
+//     console.log('onUserDisconnected: ', user);
+//     context.game.events.onUserDisconnected.dispatch(user);
+// }
 
 var initEvents = function initEvents() {
-    GLOBAL.game.events = GLOBAL.game.events || {};
-    GLOBAL.game.events.onUserConnected = new Phaser.Signal();
-    GLOBAL.game.events.onUserDisconnected = new Phaser.Signal();
-    GLOBAL.game.events.onUserDataUpdate = new Phaser.Signal();
-    GLOBAL.game.events.onExplosion = new Phaser.Signal();
+    setPlayerName();
+
+    context.game.connectedPlayers = connectedPlayers;
+
+    context.game.events = context.game.events || {};
+    context.game.events.onUserConnected = new Phaser.Signal();
+    context.game.events.onUserDisconnected = new Phaser.Signal();
+    context.game.events.onUserDataUpdate = new Phaser.Signal();
+    context.game.events.onRoomsList = new Phaser.Signal();
 };
 
-var Manager = (function () {
-    function Manager() {
-        _classCallCheck(this, Manager);
-
-        initEvents();
-
-        var socket = io();
-        socket.on('env', onServerDetails);
-        socket.on('user-connected', onUserConnected);
-        socket.on('user-disconnected', onUserDisconnected);
+function setPlayerName() {
+    context.game.playerName = '';
+    while (context.game.playerName === '') {
+        context.game.playerName = prompt('Please enter your name', localStorage.getItem('playerName') || '');
     }
-
-    _createClass(Manager, [{
-        key: 'broadcast',
-        value: function broadcast(data) {
-            connectedPeers.forEach(function (peer) {
-                peer.send(data);
-            });
-        }
-    }, {
-        key: 'sendSingleData',
-        value: function sendSingleData(peer, data) {
-            peer.send(data);
-        }
-    }, {
-        key: 'getConnectedPeers',
-        value: function getConnectedPeers() {
-            return connectedPeers;
-        }
-    }]);
-
-    return Manager;
-})();
-
-exports['default'] = Manager;
+    localStorage.setItem('playerName', context.game.playerName);
+    console.log('playerName: ', context.game.playerName);
+}
 module.exports = exports['default'];
 
 },{}],4:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var fontStyle = { font: "bold 16px Arial", fill: "#fff" };
+
+var Menu = (function (_Phaser$State) {
+    _inherits(Menu, _Phaser$State);
+
+    function Menu() {
+        _classCallCheck(this, Menu);
+
+        _get(Object.getPrototypeOf(Menu.prototype), "constructor", this).apply(this, arguments);
+    }
+
+    _createClass(Menu, [{
+        key: "create",
+        value: function create() {
+            this.menuText = this.game.add.text(100, 30, 'rooms list', fontStyle);
+            this.menuText.anchor.setTo(0, 0.5);
+
+            this.updateText = this.game.add.text(this.game.width - 20, 30, 'update rooms', fontStyle);
+            this.updateText.anchor.setTo(1, 0.5);
+            this.updateText.inputEnabled = true;
+
+            this.updateText.events.onInputDown.add(this.game.manager.updateRoomsList, this);
+            this.game.events.onRoomsList.add(this.showRoomList, this);
+        }
+    }, {
+        key: "showRoomList",
+        value: function showRoomList(rooms) {
+            if (this.roomsButtons) {
+                this.roomsButtons.destroy();
+            }
+
+            this.roomsButtons = this.game.add.group();
+            this.roomsButtons.position.setTo(100, 50);
+
+            for (var i = 0; i < rooms.length; i++) {
+                var button = this.game.add.text(0, i * 30, rooms[i].name + " [" + rooms[i].players.length + "]", fontStyle);
+                button.inputEnabled = true;
+                button.events.onInputDown.add(this.joinRoom.bind(this, rooms[i].name));
+                this.roomsButtons.add(button);
+            }
+        }
+    }, {
+        key: "joinRoom",
+        value: function joinRoom(roomName) {
+            console.log('joinRoom: ', roomName);
+            this.game.manager.joinRoom(roomName);
+        }
+    }]);
+
+    return Menu;
+})(Phaser.State);
+
+exports["default"] = Menu;
+module.exports = exports["default"];
+
+},{}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -494,7 +626,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
 exports['default'] = PeerPlayer;
 module.exports = exports['default'];
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -613,7 +745,7 @@ var Player = (function (_Phaser$Sprite) {
                     y: parseInt(bullet.y)
                 };
 
-                GLOBAL.manager.broadcast({
+                this.game.manager.broadcast({
                     type: 'shoot',
                     bullet: shootInfo
                 });
@@ -636,7 +768,7 @@ var Player = (function (_Phaser$Sprite) {
         key: 'gameOver',
         value: function gameOver(connectedPlayer) {
             console.log('killed by: ', connectedPlayer);
-            GLOBAL.manager.sendSingleData(connectedPlayer.peer, {
+            this.game.manager.sendSingleData(connectedPlayer.peer, {
                 type: 'kill'
             });
             window.location.reload();
@@ -645,7 +777,7 @@ var Player = (function (_Phaser$Sprite) {
         key: 'onlineUpdate',
         value: function onlineUpdate(updatePositionRequest) {
             if (this.position.x != this.lastOnlinePosition.x || this.position.y != this.lastOnlinePosition.y || updatePositionRequest) {
-                GLOBAL.manager.broadcast({
+                this.game.manager.broadcast({
                     type: 'position',
                     posX: parseInt(this.position.x),
                     posY: parseInt(this.position.y)

@@ -11,8 +11,6 @@ export default class Menu extends Phaser.State {
 
     	this.updateText.events.onInputDown.add(this.game.manager.updateRoomsList, this);
     	this.game.events.onRoomsList.add(this.showRoomList, this);
-
-    	this.game.manager.connect();
     }
 
     showRoomList(rooms) {
@@ -26,13 +24,13 @@ export default class Menu extends Phaser.State {
     	for(let i = 0; i < rooms.length; i++) {
 	    	const button = this.game.add.text(0, i * 30, `${rooms[i].name} [${rooms[i].players.length}]`, fontStyle);
 	    	button.inputEnabled = true;
-	    	button.events.onInputDown.add(this.changeRoom.bind(this, rooms[i].name));
+	    	button.events.onInputDown.add(this.joinRoom.bind(this, rooms[i].name));
 	    	this.roomsButtons.add(button);
     	}
     }
 
-    changeRoom(roomName) {
-    	console.log('changeRoom: ', roomName);
-    	this.game.manager.changeRoom(roomName);
+    joinRoom(roomName) {
+    	console.log('joinRoom: ', roomName);
+    	this.game.manager.joinRoom(roomName);
     }
 }
