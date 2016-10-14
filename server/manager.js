@@ -89,6 +89,8 @@ function removeFromRoom() {
 
     this.leave(this.room);
     this.room = defaultRoom;
+    
+    sendRoomsList();
 }
 
 function onDisconnect() {
