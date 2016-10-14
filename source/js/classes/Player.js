@@ -4,6 +4,8 @@ export default class Player extends Phaser.Sprite{
         this.game.physics.arcade.enable(this);
         this.body.collideWorldBounds = true;
 
+        this.startPos = new Phaser.Point(posX, posY);
+
         this.smoothed = false;
         this.anchor.setTo(0.5, 0.5);
         this.blockedLayer = blockedLayer;
@@ -113,7 +115,21 @@ export default class Player extends Phaser.Sprite{
         this.game.manager.sendSingleData(connectedPlayer.peer, {
             type: 'kill'
         });
-        window.location.reload();
+
+        this.resetPlayer();
+    }
+
+    resetPlayer() {
+        this.position.x = this.startPos.x;
+        this.position.y = this.startPos.y;
+
+        this.initValues();
+
+        this.game.manager.broadcast({
+            type: 'position',
+            posX: parseInt(this.position.x),
+            posY: parseInt(this.position.y)
+        });
     }
 
     onlineUpdate(updatePositionRequest){

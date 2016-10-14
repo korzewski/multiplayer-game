@@ -89,7 +89,7 @@ function connectToPlayer(player) {
         let conn = selfPeer.connect(player.peerID);
 
         function connectionReady() {
-            connectedPlayers[player.peerID] = { peer: conn, name };
+            connectedPlayers[player.peerID] = { peer: conn, playerName: player.playerName };
             context.game.events.onUserConnected.dispatch(connectedPlayers[player.peerID]);
         }
         
@@ -101,7 +101,7 @@ function disconnectPlayer(peerID) {
     const player = connectedPlayers[peerID];
     context.game.events.onUserDisconnected.dispatch(player);
     console.log('player disconnected: ', player);
-    
+
     delete connectedPlayers[peerID];
     console.log('connectedPlayers: ', connectedPlayers);
 }

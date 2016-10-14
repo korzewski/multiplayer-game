@@ -48,7 +48,7 @@ function joinRoom(roomName) {
             this.join(newRoom.name);
             this.room = newRoom.name;
 
-            const newPlayer = { peerID: this.peerID, name: this.playerName };
+            const newPlayer = { peerID: this.peerID, playerName: this.playerName };
 
             newRoom.players.push(newPlayer);
             console.log(this.playerName + ' joined to ' + newRoom.name);

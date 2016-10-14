@@ -189,7 +189,7 @@ var Game = (function (_Phaser$State) {
     }, {
         key: 'onUserConnected',
         value: function onUserConnected(connectedPlayer) {
-            connectedPlayer.gameObject = new _PeerPlayer2['default'](this.game, 80, 100, 'player', connectedPlayer.peer, this.blockedLayer);
+            connectedPlayer.gameObject = new _PeerPlayer2['default'](this.game, 80, 100, 'player', connectedPlayer, this.blockedLayer);
 
             this.game.manager.sendSingleData(connectedPlayer.peer, {
                 type: 'updatePositionRequest'
@@ -215,6 +215,7 @@ var Game = (function (_Phaser$State) {
                 this.player.addKill();
                 this.addPoints(100);
                 this.killsLabel.text = 'kills: ' + this.player.kills;
+                this.healthLabel.text = 'health: ' + this.player.health;
             } else if (data.type == 'updatePositionRequest') {
                 this.player.onlineUpdate(true);
             }
@@ -228,8 +229,8 @@ var Game = (function (_Phaser$State) {
             this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
             for (var connectedPlayer in this.game.connectedPlayers) {
-                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer], this.player.bullets, function (connPlayer, bullet) {
-                    _this.game.manager.sendSingleData(connPlayer.peer, {
+                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, function (player, bullet) {
+                    _this.game.manager.sendSingleData(player.connectedPlayer.peer, {
                         type: 'damage',
                         damage: _this.player.maxDamage
                     });
@@ -238,14 +239,14 @@ var Game = (function (_Phaser$State) {
                     bullet.kill();
                 });
 
-                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.player, function (connPlayer, bullet) {
+                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, function (player, bullet) {
                     _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                     bullet.kill();
                 });
 
                 for (var connectedPlayer2 in this.game.connectedPlayers) {
                     if (connectedPlayer != connectedPlayer2) {
-                        this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.game.connectedPlayers[connectedPlayer2], function (connectedPlayer, bullet) {
+                        this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, function (player, bullet) {
                             _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                             bullet.kill();
                         });
@@ -405,7 +406,7 @@ function connectToPlayer(player) {
     if (selfPeer.id !== player.peerID) {
         (function () {
             var connectionReady = function connectionReady() {
-                connectedPlayers[player.peerID] = { peer: conn, name: name };
+                connectedPlayers[player.peerID] = { peer: conn, playerName: player.playerName };
                 context.game.events.onUserConnected.dispatch(connectedPlayers[player.peerID]);
             };
 
@@ -536,54 +537,63 @@ exports["default"] = Menu;
 module.exports = exports["default"];
 
 },{}],5:[function(require,module,exports){
-'use strict';
+"use strict";
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var PeerPlayer = (function (_Phaser$Sprite) {
     _inherits(PeerPlayer, _Phaser$Sprite);
 
-    function PeerPlayer(game, posX, posY, spriteName, peer, blockedLayer) {
+    function PeerPlayer(game, posX, posY, spriteName, connectedPlayer, blockedLayer) {
         _classCallCheck(this, PeerPlayer);
 
-        _get(Object.getPrototypeOf(PeerPlayer.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
+        _get(Object.getPrototypeOf(PeerPlayer.prototype), "constructor", this).call(this, game, posX, posY, spriteName);
         this.game.physics.arcade.enable(this);
-        this.peer = peer;
+        this.connectedPlayer = connectedPlayer;
         this.blockedLayer = blockedLayer;
 
         this.anchor.setTo(0.5, 0.5);
         this.initBullets();
+        this.initPlayerName();
 
         this.game.add.existing(this);
     }
 
     _createClass(PeerPlayer, [{
-        key: 'updatePosition',
+        key: "initPlayerName",
+        value: function initPlayerName() {
+            var textStyle = { font: "10px Arial", fill: "#fff" };
+            var playerNameUI = this.game.add.text(this.width / 2, this.height, this.connectedPlayer.playerName, textStyle);
+            playerNameUI.anchor.setTo(0.5);
+            this.addChild(playerNameUI);
+        }
+    }, {
+        key: "updatePosition",
         value: function updatePosition(data) {
-            if (data.posX > this.position.x) {
-                this.scale.x = -1;
-            } else {
-                this.scale.x = 1;
-            }
+            // if(data.posX > this.position.x){
+            //     this.scale.x = -1;
+            // } else {
+            //     this.scale.x = 1;
+            // }
 
             this.position.x = data.posX;
             this.position.y = data.posY;
         }
     }, {
-        key: 'initBullets',
+        key: "initBullets",
         value: function initBullets() {
             this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-            this.bullets.createMultiple(10, 'bullet-1');
+            this.bullets.createMultiple(10, 'bullet-2');
             this.bullets.forEach(function (bullet) {
                 bullet.anchor.setTo(0.5);
                 bullet.scale.setTo(0.9);
@@ -593,7 +603,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
             });
         }
     }, {
-        key: 'shoot',
+        key: "shoot",
         value: function shoot(data) {
             var dataPoint = new Phaser.Point(data.bullet.x, data.bullet.y);
 
@@ -604,12 +614,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
             this.game.physics.arcade.moveToXY(bullet, newPoint.x, newPoint.y, data.bullet.speed);
         }
     }, {
-        key: 'getNickname',
-        value: function getNickname() {
-            return this.peer.peer;
-        }
-    }, {
-        key: 'update',
+        key: "update",
         value: function update() {
             var _this = this;
 
@@ -623,8 +628,8 @@ var PeerPlayer = (function (_Phaser$Sprite) {
     return PeerPlayer;
 })(Phaser.Sprite);
 
-exports['default'] = PeerPlayer;
-module.exports = exports['default'];
+exports["default"] = PeerPlayer;
+module.exports = exports["default"];
 
 },{}],6:[function(require,module,exports){
 'use strict';
@@ -650,6 +655,8 @@ var Player = (function (_Phaser$Sprite) {
         _get(Object.getPrototypeOf(Player.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
         this.game.physics.arcade.enable(this);
         this.body.collideWorldBounds = true;
+
+        this.startPos = new Phaser.Point(posX, posY);
 
         this.smoothed = false;
         this.anchor.setTo(0.5, 0.5);
@@ -771,7 +778,22 @@ var Player = (function (_Phaser$Sprite) {
             this.game.manager.sendSingleData(connectedPlayer.peer, {
                 type: 'kill'
             });
-            window.location.reload();
+
+            this.resetPlayer();
+        }
+    }, {
+        key: 'resetPlayer',
+        value: function resetPlayer() {
+            this.position.x = this.startPos.x;
+            this.position.y = this.startPos.y;
+
+            this.initValues();
+
+            this.game.manager.broadcast({
+                type: 'position',
+                posX: parseInt(this.position.x),
+                posY: parseInt(this.position.y)
+            });
         }
     }, {
         key: 'onlineUpdate',

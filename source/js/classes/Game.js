@@ -43,7 +43,7 @@ export default class Game extends Phaser.State{
     }
 
     onUserConnected(connectedPlayer){
-        connectedPlayer.gameObject = new PeerPlayer(this.game, 80, 100, 'player', connectedPlayer.peer, this.blockedLayer);
+        connectedPlayer.gameObject = new PeerPlayer(this.game, 80, 100, 'player', connectedPlayer, this.blockedLayer);
 
         this.game.manager.sendSingleData(connectedPlayer.peer, {
             type: 'updatePositionRequest'
@@ -67,6 +67,7 @@ export default class Game extends Phaser.State{
             this.player.addKill();
             this.addPoints(100);
             this.killsLabel.text = 'kills: ' + this.player.kills;
+            this.healthLabel.text = 'health: ' + this.player.health;
         } else if(data.type == 'updatePositionRequest'){
             this.player.onlineUpdate(true);
         }
@@ -77,8 +78,8 @@ export default class Game extends Phaser.State{
         this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
         for(let connectedPlayer in this.game.connectedPlayers){
-            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer], this.player.bullets, (connPlayer, bullet) => {
-                this.game.manager.sendSingleData(connPlayer.peer, {
+            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, (player, bullet) => {
+                this.game.manager.sendSingleData(player.connectedPlayer.peer, {
                     type: 'damage',
                     damage: this.player.maxDamage
                 });
@@ -87,14 +88,14 @@ export default class Game extends Phaser.State{
                 bullet.kill();
             });
 
-            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.player, (connPlayer, bullet) => {
+            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, (player, bullet) => {
                 this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                 bullet.kill();
             });
 
             for(let connectedPlayer2 in this.game.connectedPlayers){
                 if(connectedPlayer != connectedPlayer2){
-                    this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].bullets, this.game.connectedPlayers[connectedPlayer2], (connectedPlayer, bullet) => {
+                    this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, (player, bullet) => {
                         this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
                         bullet.kill();
                     });
