@@ -38,15 +38,32 @@ body {
       transform: translate(-50%, -50%);
       background-color: rgba(50, 50, 50, 0.8);
       box-sizing: border-box;
-      padding: 10px; }
+      padding: 30px 10px; }
   #ui .close {
     position: absolute;
     left: auto;
     top: 10px;
     right: 10px;
     bottom: auto; }
-  #ui .server-list h3 {
-    border-bottom: 1px solid #ddd; }
+  #ui h3 {
+    border-bottom: 1px solid #ddd;
+    margin: 0; }
+  #ui .server-list .nick {
+    position: absolute;
+    left: auto;
+    top: 30px;
+    right: 10px;
+    bottom: auto; }
+    #ui .server-list .nick .change, #ui .server-list .nick span {
+      color: #666;
+      font-size: 12px;
+      line-height: 20px; }
+    #ui .server-list .nick .change {
+      float: right;
+      margin-left: 20px;
+      cursor: pointer; }
+      #ui .server-list .nick .change:hover {
+        color: #fff; }
   #ui .server-list .list-item {
     transition: all 0.3s ease;
     cursor: pointer;
@@ -67,3 +84,29 @@ body {
       display: block; }
     #ui .server-list .list-item:hover {
       background-color: rgba(0, 0, 0, 0.5); }
+  #ui .player-name form {
+    margin-top: 10px; }
+    #ui .player-name form input {
+      height: 30px;
+      line-height: 30px;
+      padding: 8px;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: none;
+      font-size: 20px;
+      outline: none; }
+    #ui .player-name form button {
+      height: 30px;
+      padding: 0px 30px;
+      vertical-align: top;
+      border: none;
+      border-radius: 4px;
+      margin-left: 18px;
+      background-color: #666;
+      color: #333; }
+      #ui .player-name form button:hover:not([disabled]) {
+        cursor: pointer;
+        background-color: #ddd;
+        color: #333; }
+      #ui .player-name form button[disabled] {
+        opacity: 0.5; }

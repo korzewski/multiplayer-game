@@ -1,7 +1,6 @@
-import ReactUI from './reactUI';
-import Menu from './classes/Menu';
-import Game from './classes/Game';
 import Manager from './classes/Manager';
+import ReactUI from './reactUI';
+import Game from './classes/Game';
 
 const defaultValues = {
     width: 700,

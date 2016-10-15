@@ -22,6 +22,7 @@
     "gulp-sass": "^2.0.4",
     "gulp-sourcemaps": "^1.6.0",
     "node-sass": "^3.10.1",
+    "pubsub-js": "^1.5.3",
     "react": "^15.3.2",
     "react-dom": "^15.3.2",
     "socket.io-client": "^1.5.0",

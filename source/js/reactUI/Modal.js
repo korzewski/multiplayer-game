@@ -10,7 +10,7 @@ export default class Modal extends React.Component {
     }
 
     render() {
-        const closeButton = this.props.noCloseButton ? '' : (<div className="close" onClick={this.closeModal.bind(this)}>close</div>);
+        const closeButton = this.props.showCloseButton ? (<div className="close" onClick={this.closeModal.bind(this)}>close</div>) : '';
 
         const extendedChildren = React.Children.map(this.props.children,
             (child) => React.cloneElement(child, {closeModal: this.closeModal.bind(this)})

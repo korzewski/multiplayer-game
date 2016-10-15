@@ -1,12 +1,15 @@
+import PubSub from 'pubsub-js';
+
 let selfPeer,
     connectedPlayers = {},
-    context;
+    context,
+    playerName;
+
 
 export default class Manager {
     constructor(ctx){
         context = ctx;
         initEvents();
-        initServerConnection();
     }
 
     broadcast(data) {
@@ -27,12 +30,12 @@ function initIO(peerID) {
     window.io.on('player-joined-to-room', connectToPlayer);
     window.io.on('player-leave-a-room', disconnectPlayer);
 
-    window.io.emit('new-player', peerID, context.game.playerName);
+    window.io.emit('new-player', peerID, playerName);
 
     console.log('--- initIO peerID: ', peerID);
 }
 
-const onRoomsList = (rooms) => {
+function onRoomsList(rooms) {
     context.game.events.onRoomsList.dispatch(rooms);
 }
 
@@ -45,8 +48,6 @@ function initServerConnection() {
 }
 
 function createPeer(data) {
-    console.log('createPeer env: ' + data.env + ' port: ' + data.port);
-
     if(data.env === 'production') {
         selfPeer = new Peer({
             host:'/',
@@ -97,7 +98,6 @@ function disconnectPlayer(peerID) {
 }
 
 function onPeerOpen(peerID) {
-    console.log('peer: ', this);
     initIO(peerID);
 }
 
@@ -109,9 +109,15 @@ function onRoomConnected(roomPlayers) {
     });
 }
 
-const initEvents = () => {
-    // setPlayerName();
+function uiReady(msg, name) {
+    playerName = name;
+    initServerConnection();
+    console.log('uiReady');
+}
 
+function initEvents() {
+    PubSub.subscribe('ui-ready', uiReady);
+    PubSub.publish('manager-ready');
 
     context.game.connectedPlayers = connectedPlayers;
 
@@ -120,13 +126,4 @@ const initEvents = () => {
     context.game.events.onUserDisconnected = new Phaser.Signal();
     context.game.events.onUserDataUpdate = new Phaser.Signal();
     context.game.events.onRoomsList = new Phaser.Signal();
-}
-
-function setPlayerName() {
-    context.game.playerName = '';
-    while(context.game.playerName === '') {
-        context.game.playerName = prompt('Please enter your name', localStorage.getItem('playerName') || '');
-    }
-    localStorage.setItem('playerName', context.game.playerName);
-    console.log('playerName: ', context.game.playerName);
 }

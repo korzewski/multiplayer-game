@@ -1,14 +1,18 @@
 import React from 'react';
+import PubSub from 'pubsub-js';
+import PlayerName from './PlayerName';
+
+let uiReady = false,
+    playerName = localStorage.getItem('playerName');
 
 export default class ServerList extends React.Component {
     constructor() {
         super();
         this.state = {
-            serverRooms: []
+            serverRooms: [],
+            editPlayerName: false
         }
-    }
 
-    componentDidMount() {
         window.io.on('rooms-list', this.onRoomsList.bind(this));
     }
 
@@ -21,7 +25,24 @@ export default class ServerList extends React.Component {
         this.props.closeModal();
     }
 
+    editPlayerName() {
+        this.setState({editPlayerName: true});
+    }
+
+    updatePlayerName(name) {
+        console.log('updatePlayerName: ', name);
+    }
+
     render() {
+        if(!playerName || this.state.editPlayerName) {
+            return <PlayerName callback={this.updatePlayerName.bind(this)} />
+        }
+
+        if(!uiReady) {
+            uiReady = true;
+            PubSub.publish('ui-ready', playerName);
+        }
+
         let list = this.state.serverRooms.map((item, index) => {
             if(index === 0) return;
 
@@ -31,6 +52,7 @@ export default class ServerList extends React.Component {
         return (
             <div className="server-list">
                 <h3>Server list</h3>
+                <div className="nick"><span>nick:</span> {playerName} <EditName clickHandle={this.editPlayerName.bind(this)} /></div>
                 {list}
             </div>
         )
@@ -42,6 +64,14 @@ const ListItem = (props) => {
         <div className="list-item" onClick={props.clickHandle}>
             <div className="name">{props.data.name}</div>
             <div className="count">players: {props.data.players.length}</div>
+        </div>
+    )
+}
+
+const EditName = (props) => {
+    return (
+        <div className="change" onClick={props.clickHandle}>
+            change
         </div>
     )
 }
