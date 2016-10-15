@@ -1,7 +1,99 @@
+$color-1: #333;
+$color-2: #ddd;
+$color-3: #666;
+
 body {
-  background-color: #333;
+  background-color: $color-1;
+  margin: 0;
+  padding: 0;
+  font-family: 'arial';
 }
 
-#game{
-  //border: 1px solid #444;
+@mixin center() {
+    @include absolute(50%, 50%);
+    transform: translate(-50%, -50%);
+}
+
+@mixin absolute($left: auto, $top: auto, $right: auto, $bottom: auto) {
+    position: absolute;
+    left: $left;
+    top: $top;
+    right: $right;
+    bottom: $bottom;
+}
+
+#game canvas{
+    @include center;
+}
+
+#ui{
+    color: $color-2;
+
+    .modal {
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        left: 0;
+        top: 0;
+        background-color: rgba(0,0,0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.5s ease;
+
+        &.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content{
+            width: 700px;
+            height: 700px;
+            @include center;
+            background-color: rgba(50, 50, 50, 0.8);
+            box-sizing: border-box;
+            padding: 10px;
+        }
+    }
+
+    .close {
+        @include absolute(auto, 10px, 10px);
+    }
+
+    .server-list {
+        h3 {
+            border-bottom: 1px solid $color-2;
+        }
+
+        .list-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-bottom: 1px dashed #666;
+            
+            > * {
+                float: left;
+                height: 30px;
+                line-height: 30px;
+            }
+
+            .name {
+                color: #fff;
+            }
+
+            .count {
+                padding-left: 20px;
+                color: #999;
+                font-size: 12px;
+            }
+
+            &:after {
+                content: '';
+                clear: both;
+                display: block;
+            }
+
+            &:hover {
+                background-color: rgba(0,0,0, 0.5);
+            }
+        }
+    }
 }

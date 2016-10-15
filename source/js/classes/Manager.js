@@ -1,5 +1,4 @@
-let socket,
-    selfPeer,
+let selfPeer,
     connectedPlayers = {},
     context;
 
@@ -8,14 +7,6 @@ export default class Manager {
         context = ctx;
         initEvents();
         initServerConnection();
-    }
-
-    updateRoomsList() {
-        socket.emit('get-rooms-list');
-    }
-
-    joinRoom(roomName) {
-        socket.emit('join-room', roomName, context.game.playerName);
     }
 
     broadcast(data) {
@@ -30,16 +21,15 @@ export default class Manager {
 }
 
 function initIO(peerID) {
-    socket = io();
-    socket.on('rooms-list', onRoomsList);
-    socket.on('room-connected', onRoomConnected);
-    socket.on('player-joined-to-room', connectToPlayer);
-    socket.on('player-leave-a-room', disconnectPlayer);
+    // window.io = io();
+    // window.io.on('rooms-list', onRoomsList);
+    window.io.on('room-connected', onRoomConnected);
+    window.io.on('player-joined-to-room', connectToPlayer);
+    window.io.on('player-leave-a-room', disconnectPlayer);
 
-    socket.emit('new-player', peerID, context.game.playerName);
+    window.io.emit('new-player', peerID, context.game.playerName);
 
     console.log('--- initIO peerID: ', peerID);
-    context.game.state.start('Menu');
 }
 
 const onRoomsList = (rooms) => {
@@ -119,13 +109,9 @@ function onRoomConnected(roomPlayers) {
     });
 }
 
-// const onUserDisconnected = (user) => {
-//     console.log('onUserDisconnected: ', user);
-//     context.game.events.onUserDisconnected.dispatch(user);
-// }
-
 const initEvents = () => {
-    setPlayerName();
+    // setPlayerName();
+
 
     context.game.connectedPlayers = connectedPlayers;
 
