@@ -24,7 +24,7 @@ class Init extends React.Component {
         if(!this.state.eventsReady) {
             return (
                 <Modal>
-                    <span className="loading">loading...</span>
+                    <Loading />
                 </Modal>
             )
         }
@@ -35,6 +35,10 @@ class Init extends React.Component {
             </Modal>
         )
     }
+};
+
+const Loading = (props) => {
+    return <span className="loading">loading...!</span>
 };
 
 ReactDOM.render(<Init />, document.getElementById('ui'));

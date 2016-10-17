@@ -1,21 +1,37 @@
+const scale = 5;
+
 export default class Player extends Phaser.Sprite{
-    constructor(game, posX, posY, spriteName, blockedLayer){
+    constructor(game, posX, posY, spriteName){
         super(game, posX, posY, spriteName);
-        this.game.physics.arcade.enable(this);
-        this.body.collideWorldBounds = true;
+        this.scale.setTo(scale);
+        this.game.physics.box2d.enable(this);
+        this.body.setCircle(25);
 
         this.startPos = new Phaser.Point(posX, posY);
 
         this.smoothed = false;
-        this.anchor.setTo(0.5, 0.5);
-        this.blockedLayer = blockedLayer;
+        this.anchor.setTo(0.5, 0.7);
 
         this.initValues();
         this.initMovement();
         this.initBullets();
 
         this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
+
+        this.body.fixedRotation = true;
+        this.body.mass = 2;
         this.game.add.existing(this);
+    }
+
+    initValues() {
+        this.health = 100;
+        this.maxDamage = 10;
+        this.kills = 0;
+
+        this.speed = 200;
+        this.fireRate = 50;
+        this.nextFire = 0;
+        this.bulletSpeed = 500;
     }
 
     update(){
@@ -23,10 +39,10 @@ export default class Player extends Phaser.Sprite{
 
         if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
             this.body.velocity.x += this.speed;
-            this.scale.x = -1;
+            this.scale.x = -scale;
         } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
             this.body.velocity.x -= this.speed;
-            this.scale.x = 1;
+            this.scale.x = scale;
         }
 
         if(this.cursors.down.isDown || this.cursorsWSAD.down.isDown){
@@ -35,23 +51,12 @@ export default class Player extends Phaser.Sprite{
             this.body.velocity.y -= this.speed;
         }
 
-        this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
-            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-            bullet.kill();
-        });
+        // this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+        //     this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+        //     bullet.kill();
+        // });
 
         this.onlineUpdate();
-    }
-
-    initValues() {
-        this.health = 100;
-        this.maxDamage = 10;
-        this.kills = 0;
-
-        this.speed = 100;
-        this.fireRate = 100;
-        this.nextFire = 0;
-        this.bulletSpeed = 200;
     }
 
     initMovement() {
@@ -66,15 +71,25 @@ export default class Player extends Phaser.Sprite{
     }
 
     initBullets() {
-        this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-        this.bullets.createMultiple(10, 'bullet-1');
+        this.bullets = this.game.add.physicsGroup(Phaser.Physics.BOX2D);
+        this.bullets.createMultiple(5, 'bullet-1');
         this.bullets.forEach((bullet) => {
             bullet.anchor.setTo(0.5);
             bullet.scale.setTo(0.9);
             bullet.smoothed = false;
             bullet.checkWorldBounds = true;
             bullet.outOfBoundsKill = true;
+            bullet.body.collideWorldBounds = false;
+            bullet.body.setCategoryContactCallback(2, this.onBulletCollision, this);
+            bullet.body.sensor = true;
         });
+    }
+
+    onBulletCollision(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+        if(begin) {
+            body1.sprite.kill();
+            body1.setZeroVelocity();
+        }
     }
 
     fire(){

@@ -21173,8 +21173,8 @@ var Preloader = (function (_Phaser$State2) {
     _createClass(Preloader, [{
         key: 'preload',
         value: function preload() {
-            this.game.load.tilemap('level1', 'extra/maps/level1.json', null, Phaser.Tilemap.TILED_JSON);
-            this.game.load.image('level1-tiles', 'extra/maps/level1-tiles.png');
+            this.game.load.tilemap('map-1', 'extra/maps/map-1.json', null, Phaser.Tilemap.TILED_JSON);
+            this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
             this.game.load.image('player', 'extra/img/player.png');
             this.game.load.image('coin', 'extra/img/coin.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
@@ -21193,7 +21193,7 @@ var Preloader = (function (_Phaser$State2) {
 
 new Init();
 
-},{"./classes/Game":174,"./classes/Manager":175,"./reactUI":178}],174:[function(require,module,exports){
+},{"./classes/Game":174,"./classes/Manager":175,"./reactUI":180}],174:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -21210,6 +21210,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+var _Map = require('./Map');
+
+var _Map2 = _interopRequireDefault(_Map);
+
 var _Player = require('./Player');
 
 var _Player2 = _interopRequireDefault(_Player);
@@ -21217,6 +21221,10 @@ var _Player2 = _interopRequireDefault(_Player);
 var _PeerPlayer = require('./PeerPlayer');
 
 var _PeerPlayer2 = _interopRequireDefault(_PeerPlayer);
+
+var _Obstacle = require('./Obstacle');
+
+var _Obstacle2 = _interopRequireDefault(_Obstacle);
 
 var Game = (function (_Phaser$State) {
     _inherits(Game, _Phaser$State);
@@ -21230,22 +21238,14 @@ var Game = (function (_Phaser$State) {
     _createClass(Game, [{
         key: 'create',
         value: function create() {
-            this.game.physics.startSystem(Phaser.Physics.ARCADE);
+            // this.game.physics.startSystem(Phaser.Physics.ARCADE);
+            this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-            this.map = this.game.add.tilemap('level1');
-            this.map.addTilesetImage('simples_pimples', 'level1-tiles');
-            this.blockedLayer = this.map.createLayer('blocked');
-            this.blockedLayer.resizeWorld();
-            this.map.setCollisionBetween(1, 10000, true, 'blocked');
+            new _Map2['default'](this.game, 'map-1');
 
-            this.coins = this.game.add.group();
-            this.coins.enableBody = true;
-            this.map.createFromObjects('money', 'mm', 'coin', 0, true, false, this.coins);
-
-            this.player = new _Player2['default'](this.game, 80, 100, 'player', this.blockedLayer);
+            this.player = new _Player2['default'](this.game, 350, 350, 'player', this.blockedLayer);
+            this.game.player = this.player;
             this.game.camera.follow(this.player);
-
-            // this.connectedPlayers = {};
 
             this.scores = 0;
             this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right' };
@@ -21305,36 +21305,44 @@ var Game = (function (_Phaser$State) {
     }, {
         key: 'update',
         value: function update() {
-            var _this = this;
+            // this.game.physics.arcade.collide(this.player, this.blockedLayer);
+            // this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
-            this.game.physics.arcade.collide(this.player, this.blockedLayer);
-            this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
+            // for(let connectedPlayer in this.game.connectedPlayers){
+            //     this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, this.onConnectedPlayerHit.bind(this));
+            //     this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, this.onPlayerHit.bind(this));
 
-            for (var connectedPlayer in this.game.connectedPlayers) {
-                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, function (player, bullet) {
-                    _this.game.manager.sendSingleData(player.connectedPlayer.peer, {
-                        type: 'damage',
-                        damage: _this.player.maxDamage
-                    });
+            //     for(let connectedPlayer2 in this.game.connectedPlayers){
+            //         if(connectedPlayer != connectedPlayer2){
+            //             this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, (player, bullet) => {
+            //                 this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+            //                 bullet.kill();
+            //             });
+            //         }
+            //     }
+            // }
+        }
+    }, {
+        key: 'render',
+        value: function render() {
+            this.game.debug.box2dWorld();
+        }
+    }, {
+        key: 'onConnectedPlayerHit',
+        value: function onConnectedPlayerHit(player, bullet) {
+            this.game.manager.sendSingleData(player.connectedPlayer.peer, {
+                type: 'damage',
+                damage: this.player.maxDamage
+            });
 
-                    _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                    bullet.kill();
-                });
-
-                this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, function (player, bullet) {
-                    _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                    bullet.kill();
-                });
-
-                for (var connectedPlayer2 in this.game.connectedPlayers) {
-                    if (connectedPlayer != connectedPlayer2) {
-                        this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, function (player, bullet) {
-                            _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                            bullet.kill();
-                        });
-                    }
-                }
-            }
+            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+            bullet.kill();
+        }
+    }, {
+        key: 'onPlayerHit',
+        value: function onPlayerHit(player, bullet) {
+            this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+            bullet.kill();
         }
     }, {
         key: 'collectCoin',
@@ -21360,13 +21368,6 @@ var Game = (function (_Phaser$State) {
             var randomScale = maxScale - this.game.rnd.frac() * 0.2;
             explosion.scale.setTo(randomScale);
         }
-    }, {
-        key: 'render',
-        value: function render() {
-            //this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
-            //this.game.debug.cameraInfo(this.game.camera, 32, 32);
-            //this.game.debug.spriteCoords(this.player, 32, 500);
-        }
     }]);
 
     return Game;
@@ -21375,7 +21376,7 @@ var Game = (function (_Phaser$State) {
 exports['default'] = Game;
 module.exports = exports['default'];
 
-},{"./PeerPlayer":176,"./Player":177}],175:[function(require,module,exports){
+},{"./Map":176,"./Obstacle":177,"./PeerPlayer":178,"./Player":179}],175:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -21403,6 +21404,7 @@ var Manager = (function () {
 
         context = ctx;
         initEvents();
+        context.game.state.start('Game');
     }
 
     _createClass(Manager, [{
@@ -21515,7 +21517,6 @@ function onRoomConnected(roomPlayers) {
 function uiReady(msg, name) {
     playerName = name;
     initServerConnection();
-    console.log('uiReady');
 }
 
 function initEvents() {
@@ -21533,6 +21534,156 @@ function initEvents() {
 module.exports = exports['default'];
 
 },{"pubsub-js":28}],176:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var mapScale = 0.5;
+var cellSize = 200 * mapScale;
+
+var Map = (function (_Phaser$Sprite) {
+    _inherits(Map, _Phaser$Sprite);
+
+    function Map(game, mapName) {
+        _classCallCheck(this, Map);
+
+        _get(Object.getPrototypeOf(Map.prototype), 'constructor', this).call(this, game, 0, 0);
+
+        this.map = this.game.add.tilemap(mapName);
+        this.map.addTilesetImage('ortho-assets', 'ortho-assets');
+        var layerBg = this.map.createLayer('bg'),
+            layerBlocked = this.map.createLayer('blocked');
+
+        layerBg.resizeWorld();
+
+        this.scaleLayer(layerBg);
+        this.scaleLayer(layerBlocked);
+
+        this.blockedObjects = [];
+        var blockedTiles = layerBlocked.getTiles(0, 0, this.game.world.width, this.game.world.height);
+        blockedTiles.map(this.initBlockedObjects, this);
+
+        // this.layerBg.scale.setTo(0.2);
+        // this.map.setTileSize(50, 50);
+        // this.layerBlocked.scale.setTo(0.2);
+        // this.layerBlocked.setTileSize(50, 50);
+
+        // this.map.setCollisionBetween(1, 10000, true, 'blocked');
+
+        // this.coins = this.game.add.group();
+        // this.coins.enableBody = true;
+        // this.map.createFromObjects('money', 'mm', 'coin', 0, true, false, this.coins);
+
+        // this.obstacles = this.game.add.group();
+        // this.obstacles.enableBody = true;
+        // this.map.createFromObjects('obstacles', '', 'bullet-2', 0, true, false, this.obstacles, Obstacle);
+    }
+
+    _createClass(Map, [{
+        key: 'scaleLayer',
+        value: function scaleLayer(layer) {
+            layer.scale.setTo(mapScale);
+            layer.resize(this.game.width / mapScale, this.game.height / mapScale);
+        }
+    }, {
+        key: 'initBlockedObjects',
+        value: function initBlockedObjects(tile) {
+            if (tile.index !== -1) {
+                this.createBlockedTileObject(tile);
+            }
+        }
+    }, {
+        key: 'createBlockedTileObject',
+        value: function createBlockedTileObject(tile) {
+            var object = new Phaser.Physics.Box2D.Body(this.game, null, tile.x * cellSize + cellSize / 2, tile.y * cellSize + cellSize / 2);
+            object['static'] = true;
+            object.setRectangle(cellSize, cellSize, 0, 0, 0);
+            object.setCollisionCategory(2);
+
+            this.blockedObjects.push(object);
+        }
+    }]);
+
+    return Map;
+})(Phaser.Sprite);
+
+exports['default'] = Map;
+module.exports = exports['default'];
+
+},{}],177:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Obstacle = (function (_Phaser$Sprite) {
+    _inherits(Obstacle, _Phaser$Sprite);
+
+    function Obstacle(game, posX, posY, spriteName) {
+        _classCallCheck(this, Obstacle);
+
+        _get(Object.getPrototypeOf(Obstacle.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
+        this.game.physics.box2d.enable(this);
+
+        this.body.setCollisionCategory(3);
+        // this.body.setCircle(10);
+        // this.body.linearDamping = 1;
+        // this.body.angularDamping = 1;
+        // this.body.restitution = 0.3;
+        // this.body.friction = 0;
+        // this.body.mass = 1;
+
+        this.body['static'] = true;
+
+        console.log('Obstacle!: ', spriteName);
+    }
+
+    _createClass(Obstacle, [{
+        key: 'update',
+        value: function update() {
+            // this.game.physics.arcade.overlap(this, this.game.player.bullets, this.onBulletHit.bind(this), null, this);
+        }
+    }, {
+        key: 'onBulletHit',
+        value: function onBulletHit(obstacle, bullet) {
+            console.log('hit! : ', bullet);
+            bullet.kill();
+            if (this) {
+                this.destroy();
+            }
+        }
+
+        // collisionHandle(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+        //     console.log('booom!: ', body2);
+        // }
+    }]);
+
+    return Obstacle;
+})(Phaser.Sprite);
+
+exports['default'] = Obstacle;
+module.exports = exports['default'];
+
+},{}],178:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -21554,7 +21705,8 @@ var PeerPlayer = (function (_Phaser$Sprite) {
         _classCallCheck(this, PeerPlayer);
 
         _get(Object.getPrototypeOf(PeerPlayer.prototype), "constructor", this).call(this, game, posX, posY, spriteName);
-        this.game.physics.arcade.enable(this);
+        // this.game.physics.arcade.enable(this);
+        this.game.physics.box2d.enable(this);
         this.connectedPlayer = connectedPlayer;
         this.blockedLayer = blockedLayer;
 
@@ -21563,6 +21715,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
         this.initPlayerName();
 
         this.game.add.existing(this);
+        this.body.kinematic = true;
     }
 
     _createClass(PeerPlayer, [{
@@ -21627,7 +21780,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
 exports["default"] = PeerPlayer;
 module.exports = exports["default"];
 
-},{}],177:[function(require,module,exports){
+},{}],179:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -21642,43 +21795,58 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+var scale = 5;
+
 var Player = (function (_Phaser$Sprite) {
     _inherits(Player, _Phaser$Sprite);
 
-    function Player(game, posX, posY, spriteName, blockedLayer) {
+    function Player(game, posX, posY, spriteName) {
         _classCallCheck(this, Player);
 
         _get(Object.getPrototypeOf(Player.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
-        this.game.physics.arcade.enable(this);
-        this.body.collideWorldBounds = true;
+        this.scale.setTo(scale);
+        this.game.physics.box2d.enable(this);
+        this.body.setCircle(25);
 
         this.startPos = new Phaser.Point(posX, posY);
 
         this.smoothed = false;
-        this.anchor.setTo(0.5, 0.5);
-        this.blockedLayer = blockedLayer;
+        this.anchor.setTo(0.5, 0.7);
 
         this.initValues();
         this.initMovement();
         this.initBullets();
 
         this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
+
+        this.body.fixedRotation = true;
+        this.body.mass = 2;
         this.game.add.existing(this);
     }
 
     _createClass(Player, [{
+        key: 'initValues',
+        value: function initValues() {
+            this.health = 100;
+            this.maxDamage = 10;
+            this.kills = 0;
+
+            this.speed = 200;
+            this.fireRate = 50;
+            this.nextFire = 0;
+            this.bulletSpeed = 500;
+        }
+    }, {
         key: 'update',
         value: function update() {
-            var _this = this;
-
             this.body.velocity.x = this.body.velocity.y = 0;
 
             if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
                 this.body.velocity.x += this.speed;
-                this.scale.x = -1;
+                this.scale.x = -scale;
             } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
                 this.body.velocity.x -= this.speed;
-                this.scale.x = 1;
+                this.scale.x = scale;
             }
 
             if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
@@ -21687,24 +21855,12 @@ var Player = (function (_Phaser$Sprite) {
                 this.body.velocity.y -= this.speed;
             }
 
-            this.game.physics.arcade.collide(this.bullets, this.blockedLayer, function (bullet) {
-                _this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                bullet.kill();
-            });
+            // this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
+            //     this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+            //     bullet.kill();
+            // });
 
             this.onlineUpdate();
-        }
-    }, {
-        key: 'initValues',
-        value: function initValues() {
-            this.health = 100;
-            this.maxDamage = 10;
-            this.kills = 0;
-
-            this.speed = 100;
-            this.fireRate = 100;
-            this.nextFire = 0;
-            this.bulletSpeed = 200;
         }
     }, {
         key: 'initMovement',
@@ -21721,15 +21877,28 @@ var Player = (function (_Phaser$Sprite) {
     }, {
         key: 'initBullets',
         value: function initBullets() {
-            this.bullets = this.game.add.physicsGroup(Phaser.Physics.ARCADE);
-            this.bullets.createMultiple(10, 'bullet-1');
+            var _this = this;
+
+            this.bullets = this.game.add.physicsGroup(Phaser.Physics.BOX2D);
+            this.bullets.createMultiple(5, 'bullet-1');
             this.bullets.forEach(function (bullet) {
                 bullet.anchor.setTo(0.5);
                 bullet.scale.setTo(0.9);
                 bullet.smoothed = false;
                 bullet.checkWorldBounds = true;
                 bullet.outOfBoundsKill = true;
+                bullet.body.collideWorldBounds = false;
+                bullet.body.setCategoryContactCallback(2, _this.onBulletCollision, _this);
+                bullet.body.sensor = true;
             });
+        }
+    }, {
+        key: 'onBulletCollision',
+        value: function onBulletCollision(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+            if (begin) {
+                body1.sprite.kill();
+                body1.setZeroVelocity();
+            }
         }
     }, {
         key: 'fire',
@@ -21812,7 +21981,7 @@ var Player = (function (_Phaser$Sprite) {
 exports['default'] = Player;
 module.exports = exports['default'];
 
-},{}],178:[function(require,module,exports){
+},{}],180:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -21873,11 +22042,7 @@ var Init = (function (_React$Component) {
                 return _react2['default'].createElement(
                     _Modal2['default'],
                     null,
-                    _react2['default'].createElement(
-                        'span',
-                        { className: 'loading' },
-                        'loading...'
-                    )
+                    _react2['default'].createElement(Loading, null)
                 );
             }
 
@@ -21894,9 +22059,17 @@ var Init = (function (_React$Component) {
 
 ;
 
+var Loading = function Loading(props) {
+    return _react2['default'].createElement(
+        'span',
+        { className: 'loading' },
+        'loading...!'
+    );
+};
+
 _reactDom2['default'].render(_react2['default'].createElement(Init, null), document.getElementById('ui'));
 
-},{"./Modal":179,"./ServerList":181,"pubsub-js":28,"react":172,"react-dom":29}],179:[function(require,module,exports){
+},{"./Modal":181,"./ServerList":183,"pubsub-js":28,"react":172,"react-dom":29}],181:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -21972,7 +22145,7 @@ var Modal = (function (_React$Component) {
 exports['default'] = Modal;
 module.exports = exports['default'];
 
-},{"./ServerList":181,"react":172}],180:[function(require,module,exports){
+},{"./ServerList":183,"react":172}],182:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22061,7 +22234,7 @@ var PlayerName = (function (_React$Component) {
 exports['default'] = PlayerName;
 module.exports = exports['default'];
 
-},{"react":172}],181:[function(require,module,exports){
+},{"react":172}],183:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22207,7 +22380,7 @@ var EditName = function EditName(props) {
 };
 module.exports = exports['default'];
 
-},{"./PlayerName":180,"pubsub-js":28,"react":172}]},{},[173])
+},{"./PlayerName":182,"pubsub-js":28,"react":172}]},{},[173])
 
 
 //# sourceMappingURL=app.js.map

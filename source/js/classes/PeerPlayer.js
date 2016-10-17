@@ -1,7 +1,8 @@
 export default class PeerPlayer extends Phaser.Sprite{
     constructor(game, posX, posY, spriteName, connectedPlayer, blockedLayer) {
         super(game, posX, posY, spriteName);
-        this.game.physics.arcade.enable(this);
+        // this.game.physics.arcade.enable(this);
+        this.game.physics.box2d.enable(this);
         this.connectedPlayer = connectedPlayer;
         this.blockedLayer = blockedLayer;
 
@@ -10,6 +11,7 @@ export default class PeerPlayer extends Phaser.Sprite{
         this.initPlayerName();
 
         this.game.add.existing(this);
+        this.body.kinematic = true;
     }
 
     initPlayerName() {

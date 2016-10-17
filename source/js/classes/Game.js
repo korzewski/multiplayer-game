@@ -1,24 +1,18 @@
+import Map from './Map';
 import Player from './Player';
 import PeerPlayer from './PeerPlayer';
+import Obstacle from './Obstacle';
 
 export default class Game extends Phaser.State{
     create(){
-        this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        // this.game.physics.startSystem(Phaser.Physics.ARCADE);
+        this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-        this.map = this.game.add.tilemap('level1');
-        this.map.addTilesetImage('simples_pimples', 'level1-tiles');
-        this.blockedLayer = this.map.createLayer('blocked');
-        this.blockedLayer.resizeWorld();
-        this.map.setCollisionBetween(1, 10000, true, 'blocked');
+        new Map(this.game, 'map-1');
 
-        this.coins = this.game.add.group();
-        this.coins.enableBody = true;
-        this.map.createFromObjects('money', 'mm', 'coin', 0, true, false, this.coins);
-
-        this.player = new Player(this.game, 80, 100, 'player', this.blockedLayer);
+        this.player = new Player(this.game, 350, 350, 'player', this.blockedLayer);
+        this.game.player = this.player;
         this.game.camera.follow(this.player);
-
-        // this.connectedPlayers = {};
 
         this.scores = 0;
         this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
@@ -74,34 +68,41 @@ export default class Game extends Phaser.State{
     }
 
     update(){
-        this.game.physics.arcade.collide(this.player, this.blockedLayer);
-        this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
+        // this.game.physics.arcade.collide(this.player, this.blockedLayer);
+        // this.game.physics.arcade.overlap(this.player, this.coins, this.collectCoin, null, this);
 
-        for(let connectedPlayer in this.game.connectedPlayers){
-            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, (player, bullet) => {
-                this.game.manager.sendSingleData(player.connectedPlayer.peer, {
-                    type: 'damage',
-                    damage: this.player.maxDamage
-                });
+        // for(let connectedPlayer in this.game.connectedPlayers){
+        //     this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject, this.player.bullets, this.onConnectedPlayerHit.bind(this));
+        //     this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, this.onPlayerHit.bind(this));
 
-                this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                bullet.kill();
-            });
+        //     for(let connectedPlayer2 in this.game.connectedPlayers){
+        //         if(connectedPlayer != connectedPlayer2){
+        //             this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, (player, bullet) => {
+        //                 this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+        //                 bullet.kill();
+        //             });
+        //         }
+        //     }
+        // }
+    }
 
-            this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.player, (player, bullet) => {
-                this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                bullet.kill();
-            });
+    render() {
+        this.game.debug.box2dWorld();
+    }
 
-            for(let connectedPlayer2 in this.game.connectedPlayers){
-                if(connectedPlayer != connectedPlayer2){
-                    this.game.physics.arcade.overlap(this.game.connectedPlayers[connectedPlayer].gameObject.bullets, this.game.connectedPlayers[connectedPlayer2].gameObject, (player, bullet) => {
-                        this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-                        bullet.kill();
-                    });
-                }
-            }
-        }
+    onConnectedPlayerHit(player, bullet) {
+        this.game.manager.sendSingleData(player.connectedPlayer.peer, {
+            type: 'damage',
+            damage: this.player.maxDamage
+        });
+
+        this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+        bullet.kill();
+    }
+
+    onPlayerHit(player, bullet) {
+        this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
+        bullet.kill();
     }
 
     collectCoin(player, coin){
@@ -123,11 +124,5 @@ export default class Game extends Phaser.State{
 
         let randomScale = maxScale - (this.game.rnd.frac() * 0.2);
         explosion.scale.setTo(randomScale);
-    }
-
-    render() {
-        //this.game.debug.text('Active Bullets: ' + this.player.bullets.countLiving() + ' / ' + this.player.bullets.total, 10, 45);
-        //this.game.debug.cameraInfo(this.game.camera, 32, 32);
-        //this.game.debug.spriteCoords(this.player, 32, 500);
     }
 }

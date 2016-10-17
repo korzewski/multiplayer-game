@@ -10,6 +10,7 @@ export default class Manager {
     constructor(ctx){
         context = ctx;
         initEvents();
+        context.game.state.start('Game');
     }
 
     broadcast(data) {
@@ -112,7 +113,6 @@ function onRoomConnected(roomPlayers) {
 function uiReady(msg, name) {
     playerName = name;
     initServerConnection();
-    console.log('uiReady');
 }
 
 function initEvents() {
