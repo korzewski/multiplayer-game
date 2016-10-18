@@ -10,7 +10,7 @@ export default class Player extends Phaser.Sprite{
         this.startPos = new Phaser.Point(posX, posY);
 
         this.smoothed = false;
-        this.anchor.setTo(0.5, 0.7);
+        this.anchor.setTo(0.5);
 
         this.initValues();
         this.initMovement();
@@ -81,6 +81,7 @@ export default class Player extends Phaser.Sprite{
             bullet.outOfBoundsKill = true;
             bullet.body.collideWorldBounds = false;
             bullet.body.setCategoryContactCallback(2, this.onBulletCollision, this);
+            bullet.body.setCategoryContactCallback(3, this.onBulletCollisionDestroy, this);
             bullet.body.sensor = true;
         });
     }
@@ -89,6 +90,19 @@ export default class Player extends Phaser.Sprite{
         if(begin) {
             body1.sprite.kill();
             body1.setZeroVelocity();
+            this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
+        }
+    }
+
+    onBulletCollisionDestroy(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+        if(begin) {
+            this.game.events.onGridTileDestroy.dispatch(body2.gridPos);
+            this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
+            
+            body1.sprite.kill();
+            body1.setZeroVelocity();
+            
+            body2.destroy();
         }
     }
 

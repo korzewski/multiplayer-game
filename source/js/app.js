@@ -3,8 +3,8 @@ import ReactUI from './reactUI';
 import Game from './classes/Game';
 
 const defaultValues = {
-    width: 700,
-    height: 700
+    width: 1100,
+    height: 600
 };
 
 class Init extends Phaser.Game {

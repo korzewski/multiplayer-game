@@ -87,7 +87,7 @@ export default class Game extends Phaser.State{
     }
 
     render() {
-        this.game.debug.box2dWorld();
+        // this.game.debug.box2dWorld();
     }
 
     onConnectedPlayerHit(player, bullet) {
