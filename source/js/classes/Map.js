@@ -1,11 +1,13 @@
 import EasyStar from 'easystarjs';
 
-const mapScale = 0.5;
-const cellSize = 200 * mapScale;
-
 let pathfinder = new EasyStar.js(),
     grid = [],
     gridReady = false;
+
+const mapScale = 0.5,
+    cellSize = 200 * mapScale,
+    gridDensity = 2,
+    gridSize = cellSize / gridDensity;
 
 export default class Map extends Phaser.Sprite{
     constructor(game, mapName){
@@ -37,9 +39,9 @@ export default class Map extends Phaser.Sprite{
     }
 
     initGrid() {
-        for(let i = 0; i < this.map.height; i++) {
+        for(let i = 0; i < this.map.height * gridDensity; i++) {
             grid.push([]);
-            for(let j = 0; j < this.map.width; j++) {
+            for(let j = 0; j < this.map.width * gridDensity; j++) {
                 grid[i][j] = 0;
             }
         }
@@ -65,10 +67,11 @@ export default class Map extends Phaser.Sprite{
     }
 
     createBlockedTileObject(tile, destroyable) {
-        const object = new Phaser.Physics.Box2D.Body(this.game, null, tile.x * cellSize + cellSize/2, tile.y * cellSize + cellSize/2);
+        const tilePos = {x: tile.x, y: tile.y};
+        const object = new Phaser.Physics.Box2D.Body(this.game, null, tilePos.x * cellSize + cellSize/2, tilePos.y * cellSize + cellSize/2);
         object.static = true;
         object.setRectangle(cellSize, cellSize, 0, 0, 0);
-        object.gridPos = {x: tile.x, y: tile.y};
+        object.tilePos = tilePos;
 
         if(destroyable) {
             object.setCollisionCategory(3);
@@ -77,7 +80,7 @@ export default class Map extends Phaser.Sprite{
         }
 
         this.blockedObjects.push(object);
-        setGridTile({x: tile.x, y: tile.y}, 1);
+        setGridTile(tilePos, 1);
     }
 
     createBlockedDestroyableTileObject(tile) {
@@ -107,10 +110,11 @@ function drawPath(path) {
 }
 
 function drawRect(x, y, color) {
-    const pos = getTilePosInPx(x, y);
+    const pos = getGridPosInPx(x, y);
     const rect = this.game.add.graphics(pos.x, pos.y);
     rect.beginFill(color || 0x333333);
-    rect.drawRect(0, 0, cellSize, cellSize);
+    rect.lineStyle(1, 0x000000);
+    rect.drawRect(0, 0, gridSize, gridSize);
     rect.alpha = 0.2;
 
     return rect;
@@ -129,20 +133,25 @@ function drawGrid() {
     }
 }
 
-function getTilePosInPx(x, y) {
-    return {x: x * cellSize, y: y * cellSize};
+function getGridPosInPx(x, y) {
+    return {x: x * gridSize, y: y * gridSize};
 }
 
-function setGridTile(pos, value) {
-    grid[pos.y][pos.x] = value;
+function setGridTile(tilePos, value) {
+    const gridPos = {x: tilePos.x * gridDensity, y: tilePos.y * gridDensity};
+    for(let i = 0; i < gridDensity; i++) {
+        for(let j = 0; j < gridDensity; j++) {
+            grid[gridPos.y + i][gridPos.x + j] = value;
+        }
+    }
 
     if(value === 0) {
-        this.map.removeTile(pos.x, pos.y, 'destroyable');
+        this.map.removeTile(tilePos.x, tilePos.y, 'destroyable');
     }
 
     if(gridReady) {
         drawGrid.call(this);
-        this.findPath(0, 0, 5, 0);
+        this.findPath(0, 0, 10, 0);
     }
 }
 

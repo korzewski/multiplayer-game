@@ -22444,12 +22444,14 @@ var _easystarjs = require('easystarjs');
 
 var _easystarjs2 = _interopRequireDefault(_easystarjs);
 
-var mapScale = 0.5;
-var cellSize = 200 * mapScale;
-
 var pathfinder = new _easystarjs2['default'].js(),
     grid = [],
     gridReady = false;
+
+var mapScale = 0.5,
+    cellSize = 200 * mapScale,
+    gridDensity = 2,
+    gridSize = cellSize / gridDensity;
 
 var Map = (function (_Phaser$Sprite) {
     _inherits(Map, _Phaser$Sprite);
@@ -22487,9 +22489,9 @@ var Map = (function (_Phaser$Sprite) {
     _createClass(Map, [{
         key: 'initGrid',
         value: function initGrid() {
-            for (var i = 0; i < this.map.height; i++) {
+            for (var i = 0; i < this.map.height * gridDensity; i++) {
                 grid.push([]);
-                for (var j = 0; j < this.map.width; j++) {
+                for (var j = 0; j < this.map.width * gridDensity; j++) {
                     grid[i][j] = 0;
                 }
             }
@@ -22522,10 +22524,11 @@ var Map = (function (_Phaser$Sprite) {
     }, {
         key: 'createBlockedTileObject',
         value: function createBlockedTileObject(tile, destroyable) {
-            var object = new Phaser.Physics.Box2D.Body(this.game, null, tile.x * cellSize + cellSize / 2, tile.y * cellSize + cellSize / 2);
+            var tilePos = { x: tile.x, y: tile.y };
+            var object = new Phaser.Physics.Box2D.Body(this.game, null, tilePos.x * cellSize + cellSize / 2, tilePos.y * cellSize + cellSize / 2);
             object['static'] = true;
             object.setRectangle(cellSize, cellSize, 0, 0, 0);
-            object.gridPos = { x: tile.x, y: tile.y };
+            object.tilePos = tilePos;
 
             if (destroyable) {
                 object.setCollisionCategory(3);
@@ -22534,7 +22537,7 @@ var Map = (function (_Phaser$Sprite) {
             }
 
             this.blockedObjects.push(object);
-            setGridTile({ x: tile.x, y: tile.y }, 1);
+            setGridTile(tilePos, 1);
         }
     }, {
         key: 'createBlockedDestroyableTileObject',
@@ -22572,10 +22575,11 @@ function drawPath(path) {
 }
 
 function drawRect(x, y, color) {
-    var pos = getTilePosInPx(x, y);
+    var pos = getGridPosInPx(x, y);
     var rect = this.game.add.graphics(pos.x, pos.y);
     rect.beginFill(color || 0x333333);
-    rect.drawRect(0, 0, cellSize, cellSize);
+    rect.lineStyle(1, 0x000000);
+    rect.drawRect(0, 0, gridSize, gridSize);
     rect.alpha = 0.2;
 
     return rect;
@@ -22594,20 +22598,25 @@ function drawGrid() {
     }
 }
 
-function getTilePosInPx(x, y) {
-    return { x: x * cellSize, y: y * cellSize };
+function getGridPosInPx(x, y) {
+    return { x: x * gridSize, y: y * gridSize };
 }
 
-function setGridTile(pos, value) {
-    grid[pos.y][pos.x] = value;
+function setGridTile(tilePos, value) {
+    var gridPos = { x: tilePos.x * gridDensity, y: tilePos.y * gridDensity };
+    for (var i = 0; i < gridDensity; i++) {
+        for (var j = 0; j < gridDensity; j++) {
+            grid[gridPos.y + i][gridPos.x + j] = value;
+        }
+    }
 
     if (value === 0) {
-        this.map.removeTile(pos.x, pos.y, 'destroyable');
+        this.map.removeTile(tilePos.x, tilePos.y, 'destroyable');
     }
 
     if (gridReady) {
         drawGrid.call(this);
-        this.findPath(0, 0, 5, 0);
+        this.findPath(0, 0, 10, 0);
     }
 }
 
@@ -22907,7 +22916,7 @@ var Player = (function (_Phaser$Sprite) {
         key: 'onBulletCollisionDestroy',
         value: function onBulletCollisionDestroy(body1, body2, fixture1, fixture2, begin, impulseInfo) {
             if (begin) {
-                this.game.events.onGridTileDestroy.dispatch(body2.gridPos);
+                this.game.events.onGridTileDestroy.dispatch(body2.tilePos);
                 this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
 
                 body1.sprite.kill();

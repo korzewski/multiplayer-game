@@ -96,7 +96,7 @@ export default class Player extends Phaser.Sprite{
 
     onBulletCollisionDestroy(body1, body2, fixture1, fixture2, begin, impulseInfo) {
         if(begin) {
-            this.game.events.onGridTileDestroy.dispatch(body2.gridPos);
+            this.game.events.onGridTileDestroy.dispatch(body2.tilePos);
             this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
             
             body1.sprite.kill();
