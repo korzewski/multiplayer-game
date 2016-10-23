@@ -22065,7 +22065,7 @@ var Preloader = (function (_Phaser$State2) {
         value: function preload() {
             this.game.load.tilemap('map-1', 'extra/maps/map-1.json', null, Phaser.Tilemap.TILED_JSON);
             this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
-            this.game.load.image('player', 'extra/img/player.png');
+            this.game.load.image('dustBuster', 'extra/img/dustbuster.png');
             this.game.load.image('coin', 'extra/img/coin.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
             this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
@@ -22131,9 +22131,9 @@ var Game = (function (_Phaser$State) {
             // this.game.physics.startSystem(Phaser.Physics.ARCADE);
             this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-            new _Map2['default'](this.game, 'map-1');
+            this.game.map = new _Map2['default'](this.game, 'map-1');
 
-            this.player = new _Player2['default'](this.game, 350, 350, 'player', this.blockedLayer);
+            this.player = new _Player2['default'](this.game, 350, 350, 'dustBuster', this.blockedLayer);
             this.game.player = this.player;
             this.game.camera.follow(this.player);
 
@@ -22483,10 +22483,17 @@ var Map = (function (_Phaser$Sprite) {
         initPathFinder.call(this);
 
         this.game.events.onGridTileDestroy = new Phaser.Signal();
+        this.game.events.onGridBlocked = new Phaser.Signal();
         this.game.events.onGridTileDestroy.add(onGridTileDestroy, this);
+        this.game.events.onGridBlocked.add(onGridBlocked, this);
     }
 
     _createClass(Map, [{
+        key: 'getDetails',
+        value: function getDetails() {
+            return { gridSize: gridSize, cellSize: cellSize };
+        }
+    }, {
         key: 'initGrid',
         value: function initGrid() {
             for (var i = 0; i < this.map.height * gridDensity; i++) {
@@ -22537,7 +22544,7 @@ var Map = (function (_Phaser$Sprite) {
             }
 
             this.blockedObjects.push(object);
-            setGridTile(tilePos, 1);
+            setTile(tilePos, 1);
         }
     }, {
         key: 'createBlockedDestroyableTileObject',
@@ -22551,8 +22558,16 @@ var Map = (function (_Phaser$Sprite) {
 
 exports['default'] = Map;
 
+function onGridBlocked(blockedGridPos, unBlockedGridPos) {
+    if (unBlockedGridPos.x !== undefined) {
+        setGrid.call(this, unBlockedGridPos, 0);
+    }
+
+    setGrid.call(this, blockedGridPos, 1);
+}
+
 function onGridTileDestroy(pos) {
-    setGridTile.call(this, pos, 0);
+    setTile.call(this, pos, 0);
 }
 
 function initPathFinder() {
@@ -22566,12 +22581,14 @@ function initPathFinder() {
 function drawPath(path) {
     var _this3 = this;
 
-    this.visualPath.destroy(true, true);
+    if (path) {
+        this.visualPath.destroy(true, true);
 
-    path.map(function (tile) {
-        var rect = drawRect.call(_this3, tile.x, tile.y, 0xff3333);
-        _this3.visualPath.add(rect);
-    });
+        path.map(function (tile) {
+            var rect = drawRect.call(_this3, tile.x, tile.y, 0xff3333);
+            _this3.visualPath.add(rect);
+        });
+    }
 }
 
 function drawRect(x, y, color) {
@@ -22602,17 +22619,21 @@ function getGridPosInPx(x, y) {
     return { x: x * gridSize, y: y * gridSize };
 }
 
-function setGridTile(tilePos, value) {
+function setTile(tilePos, value) {
     var gridPos = { x: tilePos.x * gridDensity, y: tilePos.y * gridDensity };
     for (var i = 0; i < gridDensity; i++) {
         for (var j = 0; j < gridDensity; j++) {
-            grid[gridPos.y + i][gridPos.x + j] = value;
+            setGrid.call(this, { x: gridPos.x + j, y: gridPos.y + i }, value);
         }
     }
 
     if (value === 0) {
         this.map.removeTile(tilePos.x, tilePos.y, 'destroyable');
     }
+}
+
+function setGrid(gridPos, value) {
+    grid[gridPos.y][gridPos.x] = value;
 
     if (gridReady) {
         drawGrid.call(this);
@@ -22805,7 +22826,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var scale = 5;
+var scale = 0.5,
+    anchor = { x: 0.5, y: 0.7 };
+
+var updateGridPos = false,
+    blockedGrid = {},
+    lastBlockedGrid = {};
 
 var Player = (function (_Phaser$Sprite) {
     _inherits(Player, _Phaser$Sprite);
@@ -22816,12 +22842,12 @@ var Player = (function (_Phaser$Sprite) {
         _get(Object.getPrototypeOf(Player.prototype), 'constructor', this).call(this, game, posX, posY, spriteName);
         this.scale.setTo(scale);
         this.game.physics.box2d.enable(this);
-        this.body.setCircle(25);
+        this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
 
         this.smoothed = false;
-        this.anchor.setTo(0.5);
+        this.anchor.setTo(anchor.x, anchor.y);
 
         this.initValues();
         this.initMovement();
@@ -22832,6 +22858,9 @@ var Player = (function (_Phaser$Sprite) {
         this.body.fixedRotation = true;
         this.body.mass = 2;
         this.game.add.existing(this);
+
+        this.dir = 1;
+        this.mapDetails = this.game.map.getDetails();
     }
 
     _createClass(Player, [{
@@ -22852,16 +22881,22 @@ var Player = (function (_Phaser$Sprite) {
             this.body.velocity.x = this.body.velocity.y = 0;
 
             if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
+                updateGridPos = true;
+                this.dir = -1;
                 this.body.velocity.x += this.speed;
                 this.scale.x = -scale;
             } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
+                updateGridPos = true;
+                this.dir = 1;
                 this.body.velocity.x -= this.speed;
                 this.scale.x = scale;
             }
 
             if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
+                updateGridPos = true;
                 this.body.velocity.y += this.speed;
             } else if (this.cursors.up.isDown || this.cursorsWSAD.up.isDown) {
+                updateGridPos = true;
                 this.body.velocity.y -= this.speed;
             }
 
@@ -22870,7 +22905,26 @@ var Player = (function (_Phaser$Sprite) {
             //     bullet.kill();
             // });
 
+            if (updateGridPos) {
+                this.updateBlockedGrid();
+            }
+
             this.onlineUpdate();
+        }
+    }, {
+        key: 'updateBlockedGrid',
+        value: function updateBlockedGrid() {
+            updateGridPos = false;
+
+            var gridX = Math.round(this.position.x / this.mapDetails.gridSize - anchor.x),
+                gridY = Math.round(this.position.y / this.mapDetails.gridSize - anchor.y);
+
+            blockedGrid = { x: gridX, y: gridY };
+
+            if (blockedGrid.x !== lastBlockedGrid.x || blockedGrid.y !== lastBlockedGrid.y) {
+                this.game.events.onGridBlocked.dispatch(blockedGrid, lastBlockedGrid);
+                lastBlockedGrid = blockedGrid;
+            }
         }
     }, {
         key: 'initMovement',
@@ -22932,7 +22986,7 @@ var Player = (function (_Phaser$Sprite) {
                 this.nextFire = this.game.time.now + this.fireRate;
 
                 var bullet = this.bullets.getFirstDead();
-                bullet.reset(this.x, this.y);
+                bullet.reset(this.x - 25 * this.dir, this.y - 22);
 
                 var shootAngleDeg = Phaser.Math.radToDeg(this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed));
                 var shootInfo = {

@@ -8,9 +8,9 @@ export default class Game extends Phaser.State{
         // this.game.physics.startSystem(Phaser.Physics.ARCADE);
         this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-        new Map(this.game, 'map-1');
+        this.game.map = new Map(this.game, 'map-1');
 
-        this.player = new Player(this.game, 350, 350, 'player', this.blockedLayer);
+        this.player = new Player(this.game, 350, 350, 'dustBuster', this.blockedLayer);
         this.game.player = this.player;
         this.game.camera.follow(this.player);
 

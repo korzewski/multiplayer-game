@@ -35,7 +35,13 @@ export default class Map extends Phaser.Sprite{
         initPathFinder.call(this);
 
         this.game.events.onGridTileDestroy = new Phaser.Signal();
+        this.game.events.onGridBlocked = new Phaser.Signal();
         this.game.events.onGridTileDestroy.add(onGridTileDestroy, this);
+        this.game.events.onGridBlocked.add(onGridBlocked, this);
+    }
+
+    getDetails() {
+        return { gridSize, cellSize };
     }
 
     initGrid() {
@@ -80,7 +86,7 @@ export default class Map extends Phaser.Sprite{
         }
 
         this.blockedObjects.push(object);
-        setGridTile(tilePos, 1);
+        setTile(tilePos, 1);
     }
 
     createBlockedDestroyableTileObject(tile) {
@@ -88,8 +94,16 @@ export default class Map extends Phaser.Sprite{
     }
 }
 
+function onGridBlocked(blockedGridPos, unBlockedGridPos) {
+    if(unBlockedGridPos.x !== undefined) {
+        setGrid.call(this, unBlockedGridPos, 0);
+    }
+
+    setGrid.call(this, blockedGridPos, 1);
+}
+
 function onGridTileDestroy(pos) {
-    setGridTile.call(this, pos, 0);
+    setTile.call(this, pos, 0);
 }
 
 function initPathFinder() {
@@ -101,12 +115,14 @@ function initPathFinder() {
 }
 
 function drawPath(path) {
-    this.visualPath.destroy(true, true);
+    if(path) {
+        this.visualPath.destroy(true, true);
 
-    path.map((tile) => {
-        const rect = drawRect.call(this, tile.x, tile.y, 0xff3333);
-        this.visualPath.add(rect);
-    });
+        path.map((tile) => {
+            const rect = drawRect.call(this, tile.x, tile.y, 0xff3333);
+            this.visualPath.add(rect);
+        });
+    }
 }
 
 function drawRect(x, y, color) {
@@ -137,17 +153,21 @@ function getGridPosInPx(x, y) {
     return {x: x * gridSize, y: y * gridSize};
 }
 
-function setGridTile(tilePos, value) {
+function setTile(tilePos, value) {
     const gridPos = {x: tilePos.x * gridDensity, y: tilePos.y * gridDensity};
     for(let i = 0; i < gridDensity; i++) {
         for(let j = 0; j < gridDensity; j++) {
-            grid[gridPos.y + i][gridPos.x + j] = value;
+            setGrid.call(this, {x: gridPos.x + j, y: gridPos.y + i}, value);
         }
     }
 
     if(value === 0) {
         this.map.removeTile(tilePos.x, tilePos.y, 'destroyable');
     }
+}
+
+function setGrid(gridPos, value) {
+    grid[gridPos.y][gridPos.x] = value;
 
     if(gridReady) {
         drawGrid.call(this);
