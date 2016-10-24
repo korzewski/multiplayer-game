@@ -1,21 +1,16 @@
+import MovableObject from './MovableObject';
+
 const scale = 0.5,
-anchor = {x: 0.5, y: 0.7};
+    anchorPosition = {x: 0.5, y: 0.2};
 
-let updateGridPos = false,
-    blockedGrid = {},
-    lastBlockedGrid = {};
-
-export default class Player extends Phaser.Sprite{
+export default class Player extends MovableObject{
     constructor(game, posX, posY, spriteName){
-        super(game, posX, posY, spriteName);
+        super(game, posX, posY, spriteName, anchorPosition);
         this.scale.setTo(scale);
         this.game.physics.box2d.enable(this);
         this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
-
-        this.smoothed = false;
-        this.anchor.setTo(anchor.x, anchor.y);
 
         this.initValues();
         this.initMovement();
@@ -25,10 +20,8 @@ export default class Player extends Phaser.Sprite{
 
         this.body.fixedRotation = true;
         this.body.mass = 2;
-        this.game.add.existing(this);
 
         this.dir = 1;
-        this.mapDetails = this.game.map.getDetails();
     }
 
     initValues() {
@@ -46,22 +39,18 @@ export default class Player extends Phaser.Sprite{
         this.body.velocity.x = this.body.velocity.y = 0;
 
         if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
-            updateGridPos = true;
             this.dir = -1;
             this.body.velocity.x += this.speed;
             this.scale.x = -scale;
         } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
-            updateGridPos = true;
             this.dir = 1;
             this.body.velocity.x -= this.speed;
             this.scale.x = scale;
         }
 
         if(this.cursors.down.isDown || this.cursorsWSAD.down.isDown){
-            updateGridPos = true;
             this.body.velocity.y += this.speed;
         } else if(this.cursors.up.isDown || this.cursorsWSAD.up.isDown){
-            updateGridPos = true;
             this.body.velocity.y -= this.speed;
         }
 
@@ -70,26 +59,8 @@ export default class Player extends Phaser.Sprite{
         //     bullet.kill();
         // });
 
-
-        if(updateGridPos) {
-            this.updateBlockedGrid();
-        }
-
+        this.updateBlockedGrid();
         this.onlineUpdate();
-    }
-
-    updateBlockedGrid() {
-        updateGridPos = false;
-
-        const gridX = Math.round(this.position.x / this.mapDetails.gridSize - anchor.x),
-        gridY = Math.round(this.position.y / this.mapDetails.gridSize - anchor.y);
-
-        blockedGrid = {x: gridX, y: gridY};
-
-        if((blockedGrid.x !== lastBlockedGrid.x) || (blockedGrid.y !== lastBlockedGrid.y)) {
-            this.game.events.onGridBlocked.dispatch(blockedGrid, lastBlockedGrid);
-            lastBlockedGrid = blockedGrid;
-        }
     }
 
     initMovement() {
