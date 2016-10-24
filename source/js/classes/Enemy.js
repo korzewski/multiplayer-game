@@ -11,16 +11,29 @@ export default class Enemy extends MovableObject{
         this.body.fixedRotation = true;
         this.body.mass = 2;
         this.body.linearDamping = 5;
+        this.body.setCollisionCategory(4);
 
         this.scale.setTo(scale);
-        this.moveStepDuration = 500;
+        this.moveStepDuration = 700;
 
-        this.setTarget(10, 11);
+        this.setTarget(11, 25);
         this.pathCurrentIndex = 0;
+
+        this.health = 25;
     }
 
     update() {
         this.updateBlockedGrid();
+    }
+
+    addDamage(damage) {
+        this.health -= damage;
+
+        if(this.health <= 0) {
+            this.game.events.onGridBlocked.dispatch(null, this.blockedGrid);
+            this.game.events.onExplosion.dispatch(this.body.x, this.body.y, 1.5);
+            this.destroy();
+        }
     }
 
     setTarget(targetX, targetY) {
@@ -30,8 +43,6 @@ export default class Enemy extends MovableObject{
     }
 
     goTo(path) {
-        console.log('goTo: ', path);
-
         let startPos = new Phaser.Point(this.body.x, this.body.y);
         let prevPathIndex = 1;
         let nextPos;
@@ -39,6 +50,9 @@ export default class Enemy extends MovableObject{
         const percentStep = 1 / (path.length - 1);
         const tweenHelper = {progress: percentStep * prevPathIndex};
         tweenHelper.onUpdate = (tween, value) => {
+            if(!this.game) {
+                return
+            }
 
             const pathProgress = value / percentStep,
                 pathIndex = Math.floor(pathProgress),

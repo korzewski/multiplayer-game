@@ -15,7 +15,14 @@ export default class Game extends Phaser.State{
         this.game.player = this.player;
         this.game.camera.follow(this.player);
 
+
+        new Enemy(this.game, 300, 150, 'dustBuster2');
+        new Enemy(this.game, 350, 150, 'dustBuster2');
+        new Enemy(this.game, 0, 200, 'dustBuster2');
         new Enemy(this.game, 350, 200, 'dustBuster2');
+        new Enemy(this.game, 500, 0, 'dustBuster2');
+        new Enemy(this.game, 800, 0, 'dustBuster2');
+        new Enemy(this.game, 500, 500, 'dustBuster2');
 
         this.scores = 0;
         this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};

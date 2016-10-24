@@ -103,10 +103,7 @@ export default class Map extends Phaser.Sprite{
 }
 
 function onGridBlocked(blockedGridPos, unBlockedGridPos) {
-    if(unBlockedGridPos.x !== undefined) {
-        setGrid.call(this, unBlockedGridPos, 0);
-    }
-
+    setGrid.call(this, unBlockedGridPos, 0);
     setGrid.call(this, blockedGridPos, 1);
 }
 
@@ -171,6 +168,10 @@ function setTile(tilePos, value) {
 }
 
 function setGrid(gridPos, value) {
+    if(!gridPos || !gridPos.x) {
+        return
+    }
+
     grid[gridPos.y][gridPos.x] = value;
 
     if(gridReady) {

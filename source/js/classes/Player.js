@@ -1,7 +1,8 @@
 import MovableObject from './MovableObject';
 
 const scale = 0.5,
-    anchorPosition = {x: 0.5, y: 0.2};
+    anchorPosition = {x: 0.5, y: 0.2},
+    shootPower = 10;
 
 export default class Player extends MovableObject{
     constructor(game, posX, posY, spriteName){
@@ -22,6 +23,10 @@ export default class Player extends MovableObject{
         this.body.mass = 2;
 
         this.dir = 1;
+    }
+
+    getShootPower() {
+        return this.game.rnd.integerInRange(shootPower/2, shootPower);
     }
 
     initValues() {
@@ -86,6 +91,7 @@ export default class Player extends MovableObject{
             bullet.body.collideWorldBounds = false;
             bullet.body.setCategoryContactCallback(2, this.onBulletCollision, this);
             bullet.body.setCategoryContactCallback(3, this.onBulletCollisionDestroy, this);
+            bullet.body.setCategoryContactCallback(4, this.onBulletCollisionDamage, this);
             bullet.body.sensor = true;
         });
     }
@@ -107,6 +113,17 @@ export default class Player extends MovableObject{
             body1.setZeroVelocity();
             
             body2.destroy();
+        }
+    }
+
+    onBulletCollisionDamage(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+        if(begin) {
+            this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
+            
+            body1.sprite.kill();
+            body1.setZeroVelocity();
+            
+            body2.sprite.addDamage(this.getShootPower());
         }
     }
 

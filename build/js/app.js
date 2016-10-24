@@ -22120,18 +22120,32 @@ var Enemy = (function (_MovableObject) {
         this.body.fixedRotation = true;
         this.body.mass = 2;
         this.body.linearDamping = 5;
+        this.body.setCollisionCategory(4);
 
         this.scale.setTo(scale);
-        this.moveStepDuration = 500;
+        this.moveStepDuration = 700;
 
-        this.setTarget(10, 11);
+        this.setTarget(11, 25);
         this.pathCurrentIndex = 0;
+
+        this.health = 25;
     }
 
     _createClass(Enemy, [{
         key: 'update',
         value: function update() {
             this.updateBlockedGrid();
+        }
+    }, {
+        key: 'addDamage',
+        value: function addDamage(damage) {
+            this.health -= damage;
+
+            if (this.health <= 0) {
+                this.game.events.onGridBlocked.dispatch(null, this.blockedGrid);
+                this.game.events.onExplosion.dispatch(this.body.x, this.body.y, 1.5);
+                this.destroy();
+            }
         }
     }, {
         key: 'setTarget',
@@ -22147,8 +22161,6 @@ var Enemy = (function (_MovableObject) {
         value: function goTo(path) {
             var _this2 = this;
 
-            console.log('goTo: ', path);
-
             var startPos = new Phaser.Point(this.body.x, this.body.y);
             var prevPathIndex = 1;
             var nextPos = undefined;
@@ -22156,6 +22168,9 @@ var Enemy = (function (_MovableObject) {
             var percentStep = 1 / (path.length - 1);
             var tweenHelper = { progress: percentStep * prevPathIndex };
             tweenHelper.onUpdate = function (tween, value) {
+                if (!_this2.game) {
+                    return;
+                }
 
                 var pathProgress = value / percentStep,
                     pathIndex = Math.floor(pathProgress),
@@ -22246,7 +22261,13 @@ var Game = (function (_Phaser$State) {
             this.game.player = this.player;
             this.game.camera.follow(this.player);
 
+            new _Enemy2['default'](this.game, 300, 150, 'dustBuster2');
+            new _Enemy2['default'](this.game, 350, 150, 'dustBuster2');
+            new _Enemy2['default'](this.game, 0, 200, 'dustBuster2');
             new _Enemy2['default'](this.game, 350, 200, 'dustBuster2');
+            new _Enemy2['default'](this.game, 500, 0, 'dustBuster2');
+            new _Enemy2['default'](this.game, 800, 0, 'dustBuster2');
+            new _Enemy2['default'](this.game, 500, 500, 'dustBuster2');
 
             this.scores = 0;
             this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right' };
@@ -22680,10 +22701,7 @@ var Map = (function (_Phaser$Sprite) {
 exports['default'] = Map;
 
 function onGridBlocked(blockedGridPos, unBlockedGridPos) {
-    if (unBlockedGridPos.x !== undefined) {
-        setGrid.call(this, unBlockedGridPos, 0);
-    }
-
+    setGrid.call(this, unBlockedGridPos, 0);
     setGrid.call(this, blockedGridPos, 1);
 }
 
@@ -22750,6 +22768,10 @@ function setTile(tilePos, value) {
 }
 
 function setGrid(gridPos, value) {
+    if (!gridPos || !gridPos.x) {
+        return;
+    }
+
     grid[gridPos.y][gridPos.x] = value;
 
     if (gridReady) {
@@ -23014,7 +23036,8 @@ var _MovableObject2 = require('./MovableObject');
 var _MovableObject3 = _interopRequireDefault(_MovableObject2);
 
 var scale = 0.5,
-    anchorPosition = { x: 0.5, y: 0.2 };
+    anchorPosition = { x: 0.5, y: 0.2 },
+    shootPower = 10;
 
 var Player = (function (_MovableObject) {
     _inherits(Player, _MovableObject);
@@ -23042,6 +23065,11 @@ var Player = (function (_MovableObject) {
     }
 
     _createClass(Player, [{
+        key: 'getShootPower',
+        value: function getShootPower() {
+            return this.game.rnd.integerInRange(shootPower / 2, shootPower);
+        }
+    }, {
         key: 'initValues',
         value: function initValues() {
             this.health = 100;
@@ -23110,6 +23138,7 @@ var Player = (function (_MovableObject) {
                 bullet.body.collideWorldBounds = false;
                 bullet.body.setCategoryContactCallback(2, _this.onBulletCollision, _this);
                 bullet.body.setCategoryContactCallback(3, _this.onBulletCollisionDestroy, _this);
+                bullet.body.setCategoryContactCallback(4, _this.onBulletCollisionDamage, _this);
                 bullet.body.sensor = true;
             });
         }
@@ -23133,6 +23162,18 @@ var Player = (function (_MovableObject) {
                 body1.setZeroVelocity();
 
                 body2.destroy();
+            }
+        }
+    }, {
+        key: 'onBulletCollisionDamage',
+        value: function onBulletCollisionDamage(body1, body2, fixture1, fixture2, begin, impulseInfo) {
+            if (begin) {
+                this.game.events.onExplosion.dispatch(body1.x, body1.y, 1);
+
+                body1.sprite.kill();
+                body1.setZeroVelocity();
+
+                body2.sprite.addDamage(this.getShootPower());
             }
         }
     }, {
