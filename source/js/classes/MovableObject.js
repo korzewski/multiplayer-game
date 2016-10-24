@@ -11,13 +11,16 @@ export default class MovableObject extends Phaser.Sprite{
         this.mapDetails = this.game.map.getDetails();
         this.blockedGrid = {};
         this.lastBlockedGrid = {};
+
+        this.updateBlockedGrid(true);
+        
         this.game.add.existing(this);
     }
 
-    updateBlockedGrid() {
+    updateBlockedGrid(force) {
     	const isPlayerMoved = (Math.abs(this.lastPosition.x - this.position.x) > minMoveDistance || Math.abs(this.lastPosition.y - this.position.y) >  minMoveDistance)
     	
-    	if(isPlayerMoved) {
+    	if(isPlayerMoved || force) {
 	    	this.lastPosition = new Phaser.Point(this.x, this.y);
 	        const gridX = Math.round(this.position.x / this.mapDetails.gridSize - this.anchorPosition.x),
 	        gridY = Math.round(this.position.y / this.mapDetails.gridSize - this.anchorPosition.y);

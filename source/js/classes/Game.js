@@ -1,5 +1,6 @@
 import Map from './Map';
 import Player from './Player';
+import Enemy from './Enemy';
 import PeerPlayer from './PeerPlayer';
 import Obstacle from './Obstacle';
 
@@ -10,9 +11,11 @@ export default class Game extends Phaser.State{
 
         this.game.map = new Map(this.game, 'map-1');
 
-        this.player = new Player(this.game, 350, 350, 'dustBuster', this.blockedLayer);
+        this.player = new Player(this.game, 350, 350, 'dustBuster');
         this.game.player = this.player;
         this.game.camera.follow(this.player);
+
+        new Enemy(this.game, 350, 200, 'dustBuster2');
 
         this.scores = 0;
         this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};

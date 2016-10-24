@@ -92,6 +92,14 @@ export default class Map extends Phaser.Sprite{
     createBlockedDestroyableTileObject(tile) {
         this.createBlockedTileObject(tile, true);
     }
+
+    getGridPosInPx(x, y) {
+        return {x: x * gridSize, y: y * gridSize};
+    }
+
+    getGridCenterPosInPx(x, y) {
+        return {x: x * gridSize + gridSize/2, y: y * gridSize + gridSize/2};
+    }
 }
 
 function onGridBlocked(blockedGridPos, unBlockedGridPos) {
@@ -126,7 +134,7 @@ function drawPath(path) {
 }
 
 function drawRect(x, y, color) {
-    const pos = getGridPosInPx(x, y);
+    const pos = this.getGridPosInPx(x, y);
     const rect = this.game.add.graphics(pos.x, pos.y);
     rect.beginFill(color || 0x333333);
     rect.lineStyle(1, 0x000000);
@@ -147,10 +155,6 @@ function drawGrid() {
             }
         }
     }
-}
-
-function getGridPosInPx(x, y) {
-    return {x: x * gridSize, y: y * gridSize};
 }
 
 function setTile(tilePos, value) {

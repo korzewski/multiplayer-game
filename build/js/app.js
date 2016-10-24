@@ -22066,6 +22066,7 @@ var Preloader = (function (_Phaser$State2) {
             this.game.load.tilemap('map-1', 'extra/maps/map-1.json', null, Phaser.Tilemap.TILED_JSON);
             this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
             this.game.load.image('dustBuster', 'extra/img/dustbuster.png');
+            this.game.load.image('dustBuster2', 'extra/img/dustbuster2.png');
             this.game.load.image('coin', 'extra/img/coin.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
             this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
@@ -22083,7 +22084,111 @@ var Preloader = (function (_Phaser$State2) {
 
 new Init();
 
-},{"./classes/Game":179,"./classes/Manager":180,"./reactUI":186}],179:[function(require,module,exports){
+},{"./classes/Game":180,"./classes/Manager":181,"./reactUI":187}],179:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+    value: true
+});
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var _MovableObject2 = require('./MovableObject');
+
+var _MovableObject3 = _interopRequireDefault(_MovableObject2);
+
+var scale = 0.5,
+    anchorPosition = { x: 0.5, y: 0.2 };
+
+var Enemy = (function (_MovableObject) {
+    _inherits(Enemy, _MovableObject);
+
+    function Enemy(game, posX, posY, spriteName) {
+        _classCallCheck(this, Enemy);
+
+        _get(Object.getPrototypeOf(Enemy.prototype), 'constructor', this).call(this, game, posX, posY, spriteName, anchorPosition);
+        this.game.physics.box2d.enable(this);
+        this.body.setCircle(20);
+        this.body.fixedRotation = true;
+        this.body.mass = 2;
+        this.body.linearDamping = 5;
+
+        this.scale.setTo(scale);
+        this.moveStepDuration = 500;
+
+        this.setTarget(10, 11);
+        this.pathCurrentIndex = 0;
+    }
+
+    _createClass(Enemy, [{
+        key: 'update',
+        value: function update() {
+            this.updateBlockedGrid();
+        }
+    }, {
+        key: 'setTarget',
+        value: function setTarget(targetX, targetY) {
+            var _this = this;
+
+            this.game.map.findPath(this.blockedGrid.x, this.blockedGrid.y, targetX, targetY, function (path) {
+                _this.goTo(path);
+            });
+        }
+    }, {
+        key: 'goTo',
+        value: function goTo(path) {
+            var _this2 = this;
+
+            console.log('goTo: ', path);
+
+            var startPos = new Phaser.Point(this.body.x, this.body.y);
+            var prevPathIndex = 1;
+            var nextPos = undefined;
+
+            var percentStep = 1 / (path.length - 1);
+            var tweenHelper = { progress: percentStep * prevPathIndex };
+            tweenHelper.onUpdate = function (tween, value) {
+
+                var pathProgress = value / percentStep,
+                    pathIndex = Math.floor(pathProgress),
+                    pathIndexProgress = pathProgress - pathIndex;
+
+                if (pathIndex !== prevPathIndex) {
+                    prevPathIndex = pathIndex;
+                    startPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex].x, path[pathIndex].y);
+                    nextPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex + 1].x, path[pathIndex + 1].y);
+                }
+
+                _this2.body.x = _this2.getPositionBetweenTwoPoints(startPos.x, nextPos.x, pathIndexProgress);
+                _this2.body.y = _this2.getPositionBetweenTwoPoints(startPos.y, nextPos.y, pathIndexProgress);
+            };
+
+            var tween = this.game.add.tween(tweenHelper).to({ progress: 1 }, this.moveStepDuration * path.length).start();
+            tween.onUpdateCallback(tweenHelper.onUpdate);
+        }
+    }, {
+        key: 'getPositionBetweenTwoPoints',
+        value: function getPositionBetweenTwoPoints(posA, posB, percent) {
+            var offset = (posB - posA) * percent;
+            return posA + offset;
+        }
+    }]);
+
+    return Enemy;
+})(_MovableObject3['default']);
+
+exports['default'] = Enemy;
+module.exports = exports['default'];
+
+},{"./MovableObject":183}],180:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22107,6 +22212,10 @@ var _Map2 = _interopRequireDefault(_Map);
 var _Player = require('./Player');
 
 var _Player2 = _interopRequireDefault(_Player);
+
+var _Enemy = require('./Enemy');
+
+var _Enemy2 = _interopRequireDefault(_Enemy);
 
 var _PeerPlayer = require('./PeerPlayer');
 
@@ -22133,9 +22242,11 @@ var Game = (function (_Phaser$State) {
 
             this.game.map = new _Map2['default'](this.game, 'map-1');
 
-            this.player = new _Player2['default'](this.game, 350, 350, 'dustBuster', this.blockedLayer);
+            this.player = new _Player2['default'](this.game, 350, 350, 'dustBuster');
             this.game.player = this.player;
             this.game.camera.follow(this.player);
+
+            new _Enemy2['default'](this.game, 350, 200, 'dustBuster2');
 
             this.scores = 0;
             this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right' };
@@ -22266,7 +22377,7 @@ var Game = (function (_Phaser$State) {
 exports['default'] = Game;
 module.exports = exports['default'];
 
-},{"./Map":181,"./Obstacle":183,"./PeerPlayer":184,"./Player":185}],180:[function(require,module,exports){
+},{"./Enemy":179,"./Map":182,"./Obstacle":184,"./PeerPlayer":185,"./Player":186}],181:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22423,7 +22534,7 @@ function initEvents() {
 }
 module.exports = exports['default'];
 
-},{"pubsub-js":33}],181:[function(require,module,exports){
+},{"pubsub-js":33}],182:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22551,6 +22662,16 @@ var Map = (function (_Phaser$Sprite) {
         value: function createBlockedDestroyableTileObject(tile) {
             this.createBlockedTileObject(tile, true);
         }
+    }, {
+        key: 'getGridPosInPx',
+        value: function getGridPosInPx(x, y) {
+            return { x: x * gridSize, y: y * gridSize };
+        }
+    }, {
+        key: 'getGridCenterPosInPx',
+        value: function getGridCenterPosInPx(x, y) {
+            return { x: x * gridSize + gridSize / 2, y: y * gridSize + gridSize / 2 };
+        }
     }]);
 
     return Map;
@@ -22592,7 +22713,7 @@ function drawPath(path) {
 }
 
 function drawRect(x, y, color) {
-    var pos = getGridPosInPx(x, y);
+    var pos = this.getGridPosInPx(x, y);
     var rect = this.game.add.graphics(pos.x, pos.y);
     rect.beginFill(color || 0x333333);
     rect.lineStyle(1, 0x000000);
@@ -22613,10 +22734,6 @@ function drawGrid() {
             }
         }
     }
-}
-
-function getGridPosInPx(x, y) {
-    return { x: x * gridSize, y: y * gridSize };
 }
 
 function setTile(tilePos, value) {
@@ -22651,7 +22768,7 @@ function scaleLayers(layers) {
 }
 module.exports = exports['default'];
 
-},{"easystarjs":1}],182:[function(require,module,exports){
+},{"easystarjs":1}],183:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -22683,15 +22800,18 @@ var MovableObject = (function (_Phaser$Sprite) {
         this.mapDetails = this.game.map.getDetails();
         this.blockedGrid = {};
         this.lastBlockedGrid = {};
+
+        this.updateBlockedGrid(true);
+
         this.game.add.existing(this);
     }
 
     _createClass(MovableObject, [{
         key: "updateBlockedGrid",
-        value: function updateBlockedGrid() {
+        value: function updateBlockedGrid(force) {
             var isPlayerMoved = Math.abs(this.lastPosition.x - this.position.x) > minMoveDistance || Math.abs(this.lastPosition.y - this.position.y) > minMoveDistance;
 
-            if (isPlayerMoved) {
+            if (isPlayerMoved || force) {
                 this.lastPosition = new Phaser.Point(this.x, this.y);
                 var gridX = Math.round(this.position.x / this.mapDetails.gridSize - this.anchorPosition.x),
                     gridY = Math.round(this.position.y / this.mapDetails.gridSize - this.anchorPosition.y);
@@ -22712,7 +22832,7 @@ var MovableObject = (function (_Phaser$Sprite) {
 exports["default"] = MovableObject;
 module.exports = exports["default"];
 
-},{}],183:[function(require,module,exports){
+},{}],184:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22775,7 +22895,7 @@ var Obstacle = (function (_Phaser$Sprite) {
 exports['default'] = Obstacle;
 module.exports = exports['default'];
 
-},{}],184:[function(require,module,exports){
+},{}],185:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -22872,7 +22992,7 @@ var PeerPlayer = (function (_Phaser$Sprite) {
 exports["default"] = PeerPlayer;
 module.exports = exports["default"];
 
-},{}],185:[function(require,module,exports){
+},{}],186:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -22936,7 +23056,7 @@ var Player = (function (_MovableObject) {
     }, {
         key: 'update',
         value: function update() {
-            this.body.velocity.x = this.body.velocity.y = 0;
+            this.body.setZeroVelocity();
 
             if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
                 this.dir = -1;
@@ -23022,7 +23142,7 @@ var Player = (function (_MovableObject) {
                 this.nextFire = this.game.time.now + this.fireRate;
 
                 var bullet = this.bullets.getFirstDead();
-                bullet.reset(this.x - 25 * this.dir, this.y - 22);
+                bullet.reset(this.x - 25 * this.dir, this.y - 3);
 
                 var shootAngleDeg = Phaser.Math.radToDeg(this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed));
                 var shootInfo = {
@@ -23096,7 +23216,7 @@ var Player = (function (_MovableObject) {
 exports['default'] = Player;
 module.exports = exports['default'];
 
-},{"./MovableObject":182}],186:[function(require,module,exports){
+},{"./MovableObject":183}],187:[function(require,module,exports){
 'use strict';
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
@@ -23184,7 +23304,7 @@ var Loading = function Loading(props) {
 
 _reactDom2['default'].render(_react2['default'].createElement(Init, null), document.getElementById('ui'));
 
-},{"./Modal":187,"./ServerList":189,"pubsub-js":33,"react":177,"react-dom":34}],187:[function(require,module,exports){
+},{"./Modal":188,"./ServerList":190,"pubsub-js":33,"react":177,"react-dom":34}],188:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -23260,7 +23380,7 @@ var Modal = (function (_React$Component) {
 exports['default'] = Modal;
 module.exports = exports['default'];
 
-},{"./ServerList":189,"react":177}],188:[function(require,module,exports){
+},{"./ServerList":190,"react":177}],189:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -23349,7 +23469,7 @@ var PlayerName = (function (_React$Component) {
 exports['default'] = PlayerName;
 module.exports = exports['default'];
 
-},{"react":177}],189:[function(require,module,exports){
+},{"react":177}],190:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -23495,7 +23615,7 @@ var EditName = function EditName(props) {
 };
 module.exports = exports['default'];
 
-},{"./PlayerName":188,"pubsub-js":33,"react":177}]},{},[178])
+},{"./PlayerName":189,"pubsub-js":33,"react":177}]},{},[178])
 
 
 //# sourceMappingURL=app.js.map

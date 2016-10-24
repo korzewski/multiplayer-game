@@ -36,7 +36,7 @@ export default class Player extends MovableObject{
     }
 
     update(){
-        this.body.velocity.x = this.body.velocity.y = 0;
+        this.body.setZeroVelocity();
 
         if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
             this.dir = -1;
@@ -115,7 +115,7 @@ export default class Player extends MovableObject{
             this.nextFire = this.game.time.now + this.fireRate;
 
             let bullet = this.bullets.getFirstDead();
-            bullet.reset(this.x - (25 * this.dir), this.y - 22);
+            bullet.reset(this.x - (25 * this.dir), this.y - 3);
 
             let shootAngleDeg = Phaser.Math.radToDeg( this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed) );
             let shootInfo = {
