@@ -1,7 +1,6 @@
 import MovableObject from './MovableObject';
 
-const scale = 0.5,
-    anchorPosition = {x: 0.5, y: 0.2};
+const anchorPosition = {x: 0.5, y: 0.2};
 
 export default class Enemy extends MovableObject{
     constructor(game, posX, posY, spriteName){
@@ -13,7 +12,6 @@ export default class Enemy extends MovableObject{
         this.body.linearDamping = 5;
         this.body.setCollisionCategory(4);
 
-        this.scale.setTo(scale);
         this.moveStepDuration = 700;
 
         this.setTarget(11, 25);
@@ -62,6 +60,12 @@ export default class Enemy extends MovableObject{
                 prevPathIndex = pathIndex;
                 startPos = this.game.map.getGridCenterPosInPx(path[pathIndex].x, path[pathIndex].y);
                 nextPos = this.game.map.getGridCenterPosInPx(path[pathIndex + 1].x, path[pathIndex + 1].y);
+
+                if(nextPos.x - startPos.x > 1) {
+                    this.scale.x = -1;
+                } else if(nextPos.x - startPos.x < -1) {
+                    this.scale.x = 1;
+                }
             }
 
             this.body.x = this.getPositionBetweenTwoPoints(startPos.x, nextPos.x, pathIndexProgress);

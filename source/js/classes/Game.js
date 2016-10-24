@@ -5,16 +5,17 @@ import PeerPlayer from './PeerPlayer';
 import Obstacle from './Obstacle';
 
 export default class Game extends Phaser.State{
+    preload() {
+        this.game.time.advancedTiming = true;
+    }
+
     create(){
         // this.game.physics.startSystem(Phaser.Physics.ARCADE);
         this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
         this.game.map = new Map(this.game, 'map-1');
 
-        this.player = new Player(this.game, 350, 350, 'dustBuster');
-        this.game.player = this.player;
-        this.game.camera.follow(this.player);
-
+        this.game.player = new Player(this.game, 350, 350, 'dustBuster');
 
         new Enemy(this.game, 300, 150, 'dustBuster2');
         new Enemy(this.game, 350, 150, 'dustBuster2');
@@ -30,11 +31,11 @@ export default class Game extends Phaser.State{
         this.scoresLabel.fixedToCamera = true;
         this.scoresLabel.cameraOffset.setTo(10, 10);
 
-        this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.player.health, this.textStyle);
+        this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.game.player.health, this.textStyle);
         this.healthLabel.fixedToCamera = true;
         this.healthLabel.cameraOffset.setTo(10, 30);
 
-        this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.player.kills, this.textStyle);
+        this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
         this.killsLabel.fixedToCamera = true;
         this.killsLabel.cameraOffset.setTo(10, 50);
 
@@ -65,15 +66,15 @@ export default class Game extends Phaser.State{
         } else if(data.type == 'shoot'){
             this.game.connectedPlayers[peerID].gameObject.shoot(data);
         } else if(data.type == 'damage'){
-            this.player.addDamage(data, this.game.connectedPlayers[peerID]);
+            this.game.player.addDamage(data, this.game.connectedPlayers[peerID]);
             this.healthLabel.text = 'health: ' + this.player.health;
         } else if(data.type == 'kill'){
-            this.player.addKill();
+            this.game.player.addKill();
             this.addPoints(100);
-            this.killsLabel.text = 'kills: ' + this.player.kills;
-            this.healthLabel.text = 'health: ' + this.player.health;
+            this.killsLabel.text = 'kills: ' + this.game.player.kills;
+            this.healthLabel.text = 'health: ' + this.game.player.health;
         } else if(data.type == 'updatePositionRequest'){
-            this.player.onlineUpdate(true);
+            this.game.player.onlineUpdate(true);
         }
     }
 
@@ -98,6 +99,7 @@ export default class Game extends Phaser.State{
 
     render() {
         // this.game.debug.box2dWorld();
+        this.game.debug.text(this.game.time.fps || '--', 2, 14, "#00ff00"); 
     }
 
     onConnectedPlayerHit(player, bullet) {

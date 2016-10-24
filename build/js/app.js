@@ -22067,7 +22067,7 @@ var Preloader = (function (_Phaser$State2) {
             this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
             this.game.load.image('dustBuster', 'extra/img/dustbuster.png');
             this.game.load.image('dustBuster2', 'extra/img/dustbuster2.png');
-            this.game.load.image('coin', 'extra/img/coin.png');
+            this.game.load.image('dustBuster3', 'extra/img/dustbuster3.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
             this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
             this.game.load.spritesheet('explosion', 'extra/img/explosion.png', 64, 64);
@@ -22105,8 +22105,7 @@ var _MovableObject2 = require('./MovableObject');
 
 var _MovableObject3 = _interopRequireDefault(_MovableObject2);
 
-var scale = 0.5,
-    anchorPosition = { x: 0.5, y: 0.2 };
+var anchorPosition = { x: 0.5, y: 0.2 };
 
 var Enemy = (function (_MovableObject) {
     _inherits(Enemy, _MovableObject);
@@ -22122,7 +22121,6 @@ var Enemy = (function (_MovableObject) {
         this.body.linearDamping = 5;
         this.body.setCollisionCategory(4);
 
-        this.scale.setTo(scale);
         this.moveStepDuration = 700;
 
         this.setTarget(11, 25);
@@ -22180,6 +22178,12 @@ var Enemy = (function (_MovableObject) {
                     prevPathIndex = pathIndex;
                     startPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex].x, path[pathIndex].y);
                     nextPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex + 1].x, path[pathIndex + 1].y);
+
+                    if (nextPos.x - startPos.x > 1) {
+                        _this2.scale.x = -1;
+                    } else if (nextPos.x - startPos.x < -1) {
+                        _this2.scale.x = 1;
+                    }
                 }
 
                 _this2.body.x = _this2.getPositionBetweenTwoPoints(startPos.x, nextPos.x, pathIndexProgress);
@@ -22250,6 +22254,11 @@ var Game = (function (_Phaser$State) {
     }
 
     _createClass(Game, [{
+        key: 'preload',
+        value: function preload() {
+            this.game.time.advancedTiming = true;
+        }
+    }, {
         key: 'create',
         value: function create() {
             // this.game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -22257,9 +22266,7 @@ var Game = (function (_Phaser$State) {
 
             this.game.map = new _Map2['default'](this.game, 'map-1');
 
-            this.player = new _Player2['default'](this.game, 350, 350, 'dustBuster');
-            this.game.player = this.player;
-            this.game.camera.follow(this.player);
+            this.game.player = new _Player2['default'](this.game, 350, 350, 'dustBuster');
 
             new _Enemy2['default'](this.game, 300, 150, 'dustBuster2');
             new _Enemy2['default'](this.game, 350, 150, 'dustBuster2');
@@ -22275,11 +22282,11 @@ var Game = (function (_Phaser$State) {
             this.scoresLabel.fixedToCamera = true;
             this.scoresLabel.cameraOffset.setTo(10, 10);
 
-            this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.player.health, this.textStyle);
+            this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.game.player.health, this.textStyle);
             this.healthLabel.fixedToCamera = true;
             this.healthLabel.cameraOffset.setTo(10, 30);
 
-            this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.player.kills, this.textStyle);
+            this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
             this.killsLabel.fixedToCamera = true;
             this.killsLabel.cameraOffset.setTo(10, 50);
 
@@ -22313,15 +22320,15 @@ var Game = (function (_Phaser$State) {
             } else if (data.type == 'shoot') {
                 this.game.connectedPlayers[peerID].gameObject.shoot(data);
             } else if (data.type == 'damage') {
-                this.player.addDamage(data, this.game.connectedPlayers[peerID]);
+                this.game.player.addDamage(data, this.game.connectedPlayers[peerID]);
                 this.healthLabel.text = 'health: ' + this.player.health;
             } else if (data.type == 'kill') {
-                this.player.addKill();
+                this.game.player.addKill();
                 this.addPoints(100);
-                this.killsLabel.text = 'kills: ' + this.player.kills;
-                this.healthLabel.text = 'health: ' + this.player.health;
+                this.killsLabel.text = 'kills: ' + this.game.player.kills;
+                this.healthLabel.text = 'health: ' + this.game.player.health;
             } else if (data.type == 'updatePositionRequest') {
-                this.player.onlineUpdate(true);
+                this.game.player.onlineUpdate(true);
             }
         }
     }, {
@@ -22348,6 +22355,7 @@ var Game = (function (_Phaser$State) {
         key: 'render',
         value: function render() {
             // this.game.debug.box2dWorld();
+            this.game.debug.text(this.game.time.fps || '--', 2, 14, "#00ff00");
         }
     }, {
         key: 'onConnectedPlayerHit',
@@ -22580,8 +22588,7 @@ var pathfinder = new _easystarjs2['default'].js(),
     grid = [],
     gridReady = false;
 
-var mapScale = 0.5,
-    cellSize = 200 * mapScale,
+var cellSize = 100,
     gridDensity = 2,
     gridSize = cellSize / gridDensity;
 
@@ -22592,19 +22599,17 @@ var Map = (function (_Phaser$Sprite) {
         _classCallCheck(this, Map);
 
         _get(Object.getPrototypeOf(Map.prototype), 'constructor', this).call(this, game, 0, 0);
-
+        this.game.stage.backgroundColor = '#8f9e85';
         this.map = this.game.add.tilemap(mapName);
         this.map.addTilesetImage('ortho-assets', 'ortho-assets');
 
-        var layerBg = this.map.createLayer('bg'),
-            layerBlocked = this.map.createLayer('blocked'),
-            layerDestroyable = this.map.createLayer('destroyable');
+        var layerBg = this.map.createLayer('bg');
+        var layerBlocked = this.map.createLayer('blocked');
+        var layerDestroyable = this.map.createLayer('destroyable');
 
         this.visualGrid = this.game.add.group();
         this.visualPath = this.game.add.group();
         layerBg.resizeWorld();
-
-        scaleLayers.call(this, [layerBg, layerBlocked, layerDestroyable]);
 
         this.initGrid();
 
@@ -22744,8 +22749,8 @@ function drawRect(x, y, color) {
 function drawGrid() {
     this.visualGrid.destroy(true, true);
 
-    for (var i = 0; i < this.map.height; i++) {
-        for (var j = 0; j < this.map.width; j++) {
+    for (var i = 0; i < this.map.height * gridDensity; i++) {
+        for (var j = 0; j < this.map.width * gridDensity; j++) {
             if (grid[i][j] === 1) {
                 var rect = drawRect.call(this, j, i);
                 this.visualGrid.add(rect);
@@ -22778,15 +22783,6 @@ function setGrid(gridPos, value) {
         drawGrid.call(this);
         this.findPath(0, 0, 10, 0);
     }
-}
-
-function scaleLayers(layers) {
-    var _this4 = this;
-
-    layers.forEach(function (layer) {
-        layer.scale.setTo(mapScale);
-        layer.resize(_this4.game.width / mapScale, _this4.game.height / mapScale);
-    });
 }
 module.exports = exports['default'];
 
@@ -23035,8 +23031,7 @@ var _MovableObject2 = require('./MovableObject');
 
 var _MovableObject3 = _interopRequireDefault(_MovableObject2);
 
-var scale = 0.5,
-    anchorPosition = { x: 0.5, y: 0.2 },
+var anchorPosition = { x: 0.5, y: 0.2 },
     shootPower = 10;
 
 var Player = (function (_MovableObject) {
@@ -23046,11 +23041,12 @@ var Player = (function (_MovableObject) {
         _classCallCheck(this, Player);
 
         _get(Object.getPrototypeOf(Player.prototype), 'constructor', this).call(this, game, posX, posY, spriteName, anchorPosition);
-        this.scale.setTo(scale);
         this.game.physics.box2d.enable(this);
         this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
+
+        this.game.camera.follow(this, Phaser.Camera.FOLLOW_LOCKON, 0.08, 0.08);
 
         this.initValues();
         this.initMovement();
@@ -23088,12 +23084,12 @@ var Player = (function (_MovableObject) {
 
             if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
                 this.dir = -1;
+                this.scale.x = this.dir;
                 this.body.velocity.x += this.speed;
-                this.scale.x = -scale;
             } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
                 this.dir = 1;
+                this.scale.x = this.dir;
                 this.body.velocity.x -= this.speed;
-                this.scale.x = scale;
             }
 
             if (this.cursors.down.isDown || this.cursorsWSAD.down.isDown) {
@@ -23101,11 +23097,6 @@ var Player = (function (_MovableObject) {
             } else if (this.cursors.up.isDown || this.cursorsWSAD.up.isDown) {
                 this.body.velocity.y -= this.speed;
             }
-
-            // this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
-            //     this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-            //     bullet.kill();
-            // });
 
             this.updateBlockedGrid();
             this.onlineUpdate();

@@ -4,27 +4,24 @@ let pathfinder = new EasyStar.js(),
     grid = [],
     gridReady = false;
 
-const mapScale = 0.5,
-    cellSize = 200 * mapScale,
+const cellSize = 100,
     gridDensity = 2,
     gridSize = cellSize / gridDensity;
 
 export default class Map extends Phaser.Sprite{
     constructor(game, mapName){
         super(game, 0, 0);
-
+        this.game.stage.backgroundColor = '#8f9e85';
         this.map = this.game.add.tilemap(mapName);
         this.map.addTilesetImage('ortho-assets', 'ortho-assets');
 
-        const layerBg = this.map.createLayer('bg'),
-        layerBlocked = this.map.createLayer('blocked'),
-        layerDestroyable = this.map.createLayer('destroyable');
+        const layerBg = this.map.createLayer('bg');
+        const layerBlocked = this.map.createLayer('blocked');
+        const layerDestroyable = this.map.createLayer('destroyable');
 
         this.visualGrid = this.game.add.group();
         this.visualPath = this.game.add.group();
         layerBg.resizeWorld();
-
-        scaleLayers.call(this, [layerBg, layerBlocked, layerDestroyable]);
 
         this.initGrid();
 
@@ -144,8 +141,8 @@ function drawRect(x, y, color) {
 function drawGrid() {
     this.visualGrid.destroy(true, true);
 
-    for(let i = 0; i < this.map.height; i++) {
-        for(let j = 0; j < this.map.width; j++) {
+    for(let i = 0; i < this.map.height * gridDensity; i++) {
+        for(let j = 0; j < this.map.width * gridDensity; j++) {
             if(grid[i][j] === 1) {
                 const rect = drawRect.call(this, j, i);
                 this.visualGrid.add(rect);
@@ -178,11 +175,4 @@ function setGrid(gridPos, value) {
         drawGrid.call(this);
         this.findPath(0, 0, 10, 0);
     }
-}
-
-function scaleLayers(layers) {
-    layers.forEach((layer) => {
-        layer.scale.setTo(mapScale);
-        layer.resize(this.game.width / mapScale, this.game.height / mapScale);
-    });
 }

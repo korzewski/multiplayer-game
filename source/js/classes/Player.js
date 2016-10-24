@@ -1,17 +1,17 @@
 import MovableObject from './MovableObject';
 
-const scale = 0.5,
-    anchorPosition = {x: 0.5, y: 0.2},
+const anchorPosition = {x: 0.5, y: 0.2},
     shootPower = 10;
 
 export default class Player extends MovableObject{
     constructor(game, posX, posY, spriteName){
         super(game, posX, posY, spriteName, anchorPosition);
-        this.scale.setTo(scale);
         this.game.physics.box2d.enable(this);
         this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
+
+        this.game.camera.follow(this, Phaser.Camera.FOLLOW_LOCKON, 0.08, 0.08);
 
         this.initValues();
         this.initMovement();
@@ -45,12 +45,12 @@ export default class Player extends MovableObject{
 
         if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
             this.dir = -1;
+            this.scale.x = this.dir;
             this.body.velocity.x += this.speed;
-            this.scale.x = -scale;
         } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
             this.dir = 1;
+            this.scale.x = this.dir;
             this.body.velocity.x -= this.speed;
-            this.scale.x = scale;
         }
 
         if(this.cursors.down.isDown || this.cursorsWSAD.down.isDown){
@@ -58,11 +58,6 @@ export default class Player extends MovableObject{
         } else if(this.cursors.up.isDown || this.cursorsWSAD.up.isDown){
             this.body.velocity.y -= this.speed;
         }
-
-        // this.game.physics.arcade.collide(this.bullets, this.blockedLayer, (bullet) => {
-        //     this.game.events.onExplosion.dispatch(bullet.x, bullet.y, 0.5);
-        //     bullet.kill();
-        // });
 
         this.updateBlockedGrid();
         this.onlineUpdate();

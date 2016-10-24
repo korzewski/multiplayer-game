@@ -49,7 +49,7 @@ class Preloader extends Phaser.State{
         this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
         this.game.load.image('dustBuster', 'extra/img/dustbuster.png');
         this.game.load.image('dustBuster2', 'extra/img/dustbuster2.png');
-        this.game.load.image('coin', 'extra/img/coin.png');
+        this.game.load.image('dustBuster3', 'extra/img/dustbuster3.png');
         this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
         this.game.load.image('bullet-2', 'extra/img/bullet-2.png');
         this.game.load.spritesheet('explosion', 'extra/img/explosion.png', 64, 64);
