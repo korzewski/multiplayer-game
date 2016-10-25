@@ -1,7 +1,11 @@
 import MovableObject from './MovableObject';
 
 const anchorPosition = {x: 0.5, y: 0.2},
-    shootPower = 10;
+    shootPower = 10,
+    cameraOffsetValue = 50,
+    aimCursorRadius = 50;
+
+let cameraOffset = new Phaser.Point(0, 0);
 
 export default class Player extends MovableObject{
     constructor(game, posX, posY, spriteName){
@@ -10,8 +14,14 @@ export default class Player extends MovableObject{
         this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
+        this.cameraPointToFollow = new Phaser.Sprite(this.game);
+        this.aimCursor = this.game.add.sprite(0, 0, 'bullet-2');
+        this.aimCursor.anchor.setTo(0.5);
 
-        this.game.camera.follow(this, Phaser.Camera.FOLLOW_LOCKON, 0.08, 0.08);
+        this.addChild(this.cameraPointToFollow);
+        this.addChild(this.aimCursor);
+
+        this.game.camera.follow(this.cameraPointToFollow, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1);
 
         this.initValues();
         this.initMovement();
@@ -59,25 +69,34 @@ export default class Player extends MovableObject{
     }
 
     updateDirection() {
-        const angle = Phaser.Math.radToDeg(this.game.physics.arcade.angleToPointer(this));
+        const angleRad = this.game.physics.arcade.angleToPointer(this);
+        const angle = Phaser.Math.radToDeg(angleRad);
 
         if(angle > -45 && angle < 45) {
             // right
             this.frame = 0;
             this.scale.x = -1;
+            cameraOffset = new Phaser.Point(cameraOffsetValue * this.scale.x * 2, 0);
         } else if(angle >= 45 && angle < 135) {
             // down
             this.frame = 1;
             this.scale.x = 1;
+            cameraOffset = new Phaser.Point(0, cameraOffsetValue);
+
         } else if(angle >= 135 || angle < -135) {
             // left
             this.frame = 0;
             this.scale.x = 1;
+            cameraOffset = new Phaser.Point(-cameraOffsetValue * 2, 0);
         } else if(angle <= -45 && angle >= -135) {
             // up
             this.frame = 2;
             this.scale.x = 1;
+            cameraOffset = new Phaser.Point(0, -cameraOffsetValue);
         }
+
+        this.cameraPointToFollow.position = cameraOffset;
+        this.aimCursor.position = new Phaser.Point(Math.cos(angleRad) * aimCursorRadius * this.scale.x, Math.sin(angleRad) * aimCursorRadius);
     }
 
     initMovement() {
@@ -134,7 +153,7 @@ export default class Player extends MovableObject{
             
             body1.sprite.kill();
             body1.setZeroVelocity();
-            
+
             if(body2.sprite) {
                 body2.sprite.addDamage(this.getShootPower());
             }
@@ -146,7 +165,7 @@ export default class Player extends MovableObject{
             this.nextFire = this.game.time.now + this.fireRate;
 
             let bullet = this.bullets.getFirstDead();
-            bullet.reset(this.x - (25 * this.scale.x), this.y - 3);
+            bullet.reset(this.x + this.aimCursor.x * this.scale.x, this.y + this.aimCursor.y);
 
             let shootAngleDeg = Phaser.Math.radToDeg( this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed) );
             let shootInfo = {

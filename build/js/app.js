@@ -22789,16 +22789,14 @@ function initPathFinder() {
 }
 
 function drawPath(path) {
-    var _this3 = this;
+    // if(path) {
+    //     this.visualPath.destroy(true, true);
 
-    if (path) {
-        this.visualPath.destroy(true, true);
-
-        path.map(function (tile) {
-            var rect = drawRect.call(_this3, tile.x, tile.y, 0xff3333);
-            _this3.visualPath.add(rect);
-        });
-    }
+    //     path.map((tile) => {
+    //         const rect = drawRect.call(this, tile.x, tile.y, 0xff3333);
+    //         this.visualPath.add(rect);
+    //     });
+    // }
 }
 
 function drawRect(x, y, color) {
@@ -22813,16 +22811,16 @@ function drawRect(x, y, color) {
 }
 
 function drawGrid() {
-    this.visualGrid.destroy(true, true);
+    // this.visualGrid.destroy(true, true);
 
-    for (var i = 0; i < this.map.height * gridDensity; i++) {
-        for (var j = 0; j < this.map.width * gridDensity; j++) {
-            if (grid[i][j] === 1) {
-                var rect = drawRect.call(this, j, i);
-                this.visualGrid.add(rect);
-            }
-        }
-    }
+    // for(let i = 0; i < this.map.height * gridDensity; i++) {
+    //     for(let j = 0; j < this.map.width * gridDensity; j++) {
+    //         if(grid[i][j] === 1) {
+    //             const rect = drawRect.call(this, j, i);
+    //             this.visualGrid.add(rect);
+    //         }
+    //     }
+    // }
 }
 
 function setTile(tilePos, value) {
@@ -23102,7 +23100,11 @@ var _MovableObject2 = require('./MovableObject');
 var _MovableObject3 = _interopRequireDefault(_MovableObject2);
 
 var anchorPosition = { x: 0.5, y: 0.2 },
-    shootPower = 10;
+    shootPower = 10,
+    cameraOffsetValue = 50,
+    aimCursorRadius = 50;
+
+var cameraOffset = new Phaser.Point(0, 0);
 
 var Player = (function (_MovableObject) {
     _inherits(Player, _MovableObject);
@@ -23115,8 +23117,14 @@ var Player = (function (_MovableObject) {
         this.body.setCircle(20);
 
         this.startPos = new Phaser.Point(posX, posY);
+        this.cameraPointToFollow = new Phaser.Sprite(this.game);
+        this.aimCursor = this.game.add.sprite(0, 0, 'bullet-2');
+        this.aimCursor.anchor.setTo(0.5);
 
-        this.game.camera.follow(this, Phaser.Camera.FOLLOW_LOCKON, 0.08, 0.08);
+        this.addChild(this.cameraPointToFollow);
+        this.addChild(this.aimCursor);
+
+        this.game.camera.follow(this.cameraPointToFollow, Phaser.Camera.FOLLOW_LOCKON, 0.1, 0.1);
 
         this.initValues();
         this.initMovement();
@@ -23169,25 +23177,33 @@ var Player = (function (_MovableObject) {
     }, {
         key: 'updateDirection',
         value: function updateDirection() {
-            var angle = Phaser.Math.radToDeg(this.game.physics.arcade.angleToPointer(this));
+            var angleRad = this.game.physics.arcade.angleToPointer(this);
+            var angle = Phaser.Math.radToDeg(angleRad);
 
             if (angle > -45 && angle < 45) {
                 // right
                 this.frame = 0;
                 this.scale.x = -1;
+                cameraOffset = new Phaser.Point(cameraOffsetValue * this.scale.x * 2, 0);
             } else if (angle >= 45 && angle < 135) {
                 // down
                 this.frame = 1;
                 this.scale.x = 1;
+                cameraOffset = new Phaser.Point(0, cameraOffsetValue);
             } else if (angle >= 135 || angle < -135) {
                 // left
                 this.frame = 0;
                 this.scale.x = 1;
+                cameraOffset = new Phaser.Point(-cameraOffsetValue * 2, 0);
             } else if (angle <= -45 && angle >= -135) {
                 // up
                 this.frame = 2;
                 this.scale.x = 1;
+                cameraOffset = new Phaser.Point(0, -cameraOffsetValue);
             }
+
+            this.cameraPointToFollow.position = cameraOffset;
+            this.aimCursor.position = new Phaser.Point(Math.cos(angleRad) * aimCursorRadius * this.scale.x, Math.sin(angleRad) * aimCursorRadius);
         }
     }, {
         key: 'initMovement',
@@ -23264,7 +23280,7 @@ var Player = (function (_MovableObject) {
                 this.nextFire = this.game.time.now + this.fireRate;
 
                 var bullet = this.bullets.getFirstDead();
-                bullet.reset(this.x - 25 * this.scale.x, this.y - 3);
+                bullet.reset(this.x + this.aimCursor.x * this.scale.x, this.y + this.aimCursor.y);
 
                 var shootAngleDeg = Phaser.Math.radToDeg(this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed));
                 var shootInfo = {
