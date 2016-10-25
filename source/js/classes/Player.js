@@ -16,13 +16,12 @@ export default class Player extends MovableObject{
         this.initValues();
         this.initMovement();
         this.initBullets();
+        this.game.input.addMoveCallback(this.updateDirection.bind(this));
 
         this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
 
         this.body.fixedRotation = true;
         this.body.mass = 2;
-
-        this.dir = 1;
     }
 
     getShootPower() {
@@ -37,19 +36,15 @@ export default class Player extends MovableObject{
         this.speed = 200;
         this.fireRate = 50;
         this.nextFire = 0;
-        this.bulletSpeed = 500;
+        this.bulletSpeed = 1000;
     }
 
     update(){
         this.body.setZeroVelocity();
 
         if(this.cursors.right.isDown || this.cursorsWSAD.right.isDown){
-            this.dir = -1;
-            this.scale.x = this.dir;
             this.body.velocity.x += this.speed;
         } else if(this.cursors.left.isDown || this.cursorsWSAD.left.isDown){
-            this.dir = 1;
-            this.scale.x = this.dir;
             this.body.velocity.x -= this.speed;
         }
 
@@ -61,6 +56,28 @@ export default class Player extends MovableObject{
 
         this.updateBlockedGrid(false, true);
         this.onlineUpdate();
+    }
+
+    updateDirection() {
+        const angle = Phaser.Math.radToDeg(this.game.physics.arcade.angleToPointer(this));
+
+        if(angle > -45 && angle < 45) {
+            // right
+            this.frame = 0;
+            this.scale.x = -1;
+        } else if(angle >= 45 && angle < 135) {
+            // down
+            this.frame = 1;
+            this.scale.x = 1;
+        } else if(angle >= 135 || angle < -135) {
+            // left
+            this.frame = 0;
+            this.scale.x = 1;
+        } else if(angle <= -45 && angle >= -135) {
+            // up
+            this.frame = 2;
+            this.scale.x = 1;
+        }
     }
 
     initMovement() {
@@ -79,7 +96,7 @@ export default class Player extends MovableObject{
         this.bullets.createMultiple(5, 'bullet-1');
         this.bullets.forEach((bullet) => {
             bullet.anchor.setTo(0.5);
-            bullet.scale.setTo(0.9);
+            // bullet.scale.setTo(0.9);
             bullet.smoothed = false;
             bullet.checkWorldBounds = true;
             bullet.outOfBoundsKill = true;
@@ -118,7 +135,9 @@ export default class Player extends MovableObject{
             body1.sprite.kill();
             body1.setZeroVelocity();
             
-            body2.sprite.addDamage(this.getShootPower());
+            if(body2.sprite) {
+                body2.sprite.addDamage(this.getShootPower());
+            }
         }
     }
 
@@ -127,7 +146,7 @@ export default class Player extends MovableObject{
             this.nextFire = this.game.time.now + this.fireRate;
 
             let bullet = this.bullets.getFirstDead();
-            bullet.reset(this.x - (25 * this.dir), this.y - 3);
+            bullet.reset(this.x - (25 * this.scale.x), this.y - 3);
 
             let shootAngleDeg = Phaser.Math.radToDeg( this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed) );
             let shootInfo = {

@@ -22065,7 +22065,7 @@ var Preloader = (function (_Phaser$State2) {
         value: function preload() {
             this.game.load.tilemap('map-1', 'extra/maps/map-1.json', null, Phaser.Tilemap.TILED_JSON);
             this.game.load.image('ortho-assets', 'extra/img/ortho-assets.png');
-            this.game.load.image('dustBuster', 'extra/img/dustbuster.png');
+            this.game.load.spritesheet('dustBuster', 'extra/img/dustbuster.png', 85, 100);
             this.game.load.image('dustBuster2', 'extra/img/dustbuster2.png');
             this.game.load.image('dustBuster3', 'extra/img/dustbuster3.png');
             this.game.load.image('bullet-1', 'extra/img/bullet-1.png');
@@ -22121,14 +22121,17 @@ var Enemy = (function (_MovableObject) {
         this.body.linearDamping = 5;
         this.body.setCollisionCategory(4);
 
-        this.moveStepDuration = 500;
+        this.moveStepDuration = 400;
 
         this.health = 25;
 
         this.game.events.onPlayerMoved.add(this.onPlayerMoved, this);
+        this.game.events.onGridTileDestroy.add(this.onGridTileDestroy, this);
+        this.game.events.onGridBlocked.add(this.onGridBlocked, this);
 
+        this.path = [];
         this.target = null;
-        this.targetMoved = false;
+        this.findNewPath = false;
     }
 
     _createClass(Enemy, [{
@@ -22142,10 +22145,32 @@ var Enemy = (function (_MovableObject) {
             this.health -= damage;
 
             if (this.health <= 0) {
+                this.game.events.onGridBlocked.remove(this.onGridBlocked, this);
+                this.game.events.onPlayerMoved.remove(this.onPlayerMoved, this);
+
                 this.game.events.onGridBlocked.dispatch(null, this.blockedGrid);
                 this.game.events.onExplosion.dispatch(this.body.x, this.body.y, 1.5);
-                this.game.events.onPlayerMoved.remove(this.onPlayerMoved, this);
                 this.destroy();
+            }
+        }
+    }, {
+        key: 'onGridBlocked',
+        value: function onGridBlocked(blocked, unblocked) {
+            var blockedStringify = JSON.stringify(blocked);
+            if (JSON.stringify(this.blockedGrid) !== blockedStringify) {
+                for (var i = 0; i < this.path.length; i++) {
+                    if (JSON.stringify(this.path[i]) === blockedStringify) {
+                        this.findNewPath = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }, {
+        key: 'onGridTileDestroy',
+        value: function onGridTileDestroy() {
+            if (this.target) {
+                this.findNewPath = true;
             }
         }
     }, {
@@ -22155,7 +22180,7 @@ var Enemy = (function (_MovableObject) {
                 this.target = player;
                 this.setDestinationToGo(this.target.blockedGrid);
             } else {
-                this.targetMoved = true;
+                this.findNewPath = true;
             }
         }
     }, {
@@ -22176,6 +22201,7 @@ var Enemy = (function (_MovableObject) {
         value: function goTo(path) {
             var _this2 = this;
 
+            this.path = path;
             var startPos = new Phaser.Point(this.body.x, this.body.y);
             var prevPathIndex = -1;
             var nextPos = undefined;
@@ -22192,9 +22218,12 @@ var Enemy = (function (_MovableObject) {
                     pathIndexProgress = pathProgress - pathIndex;
 
                 if (pathIndex !== prevPathIndex) {
-                    if (_this2.targetMoved) {
-                        _this2.targetMoved = false;
-                        _this2.setDestinationToGo(_this2.target.blockedGrid);
+                    if (_this2.findNewPath) {
+                        _this2.findNewPath = false;
+
+                        if (_this2.target) {
+                            _this2.setDestinationToGo(_this2.target.blockedGrid);
+                        }
                     }
 
                     prevPathIndex = pathIndex;
@@ -22214,6 +22243,7 @@ var Enemy = (function (_MovableObject) {
 
             tweenHelper.onComplete = function () {
                 _this2.target = null;
+                _this2.path = [];
             };
 
             this.game.tweens.remove(this.tweenMove);
@@ -23091,13 +23121,12 @@ var Player = (function (_MovableObject) {
         this.initValues();
         this.initMovement();
         this.initBullets();
+        this.game.input.addMoveCallback(this.updateDirection.bind(this));
 
         this.lastOnlinePosition = new Phaser.Point(this.x, this.y);
 
         this.body.fixedRotation = true;
         this.body.mass = 2;
-
-        this.dir = 1;
     }
 
     _createClass(Player, [{
@@ -23115,7 +23144,7 @@ var Player = (function (_MovableObject) {
             this.speed = 200;
             this.fireRate = 50;
             this.nextFire = 0;
-            this.bulletSpeed = 500;
+            this.bulletSpeed = 1000;
         }
     }, {
         key: 'update',
@@ -23123,12 +23152,8 @@ var Player = (function (_MovableObject) {
             this.body.setZeroVelocity();
 
             if (this.cursors.right.isDown || this.cursorsWSAD.right.isDown) {
-                this.dir = -1;
-                this.scale.x = this.dir;
                 this.body.velocity.x += this.speed;
             } else if (this.cursors.left.isDown || this.cursorsWSAD.left.isDown) {
-                this.dir = 1;
-                this.scale.x = this.dir;
                 this.body.velocity.x -= this.speed;
             }
 
@@ -23140,6 +23165,29 @@ var Player = (function (_MovableObject) {
 
             this.updateBlockedGrid(false, true);
             this.onlineUpdate();
+        }
+    }, {
+        key: 'updateDirection',
+        value: function updateDirection() {
+            var angle = Phaser.Math.radToDeg(this.game.physics.arcade.angleToPointer(this));
+
+            if (angle > -45 && angle < 45) {
+                // right
+                this.frame = 0;
+                this.scale.x = -1;
+            } else if (angle >= 45 && angle < 135) {
+                // down
+                this.frame = 1;
+                this.scale.x = 1;
+            } else if (angle >= 135 || angle < -135) {
+                // left
+                this.frame = 0;
+                this.scale.x = 1;
+            } else if (angle <= -45 && angle >= -135) {
+                // up
+                this.frame = 2;
+                this.scale.x = 1;
+            }
         }
     }, {
         key: 'initMovement',
@@ -23162,7 +23210,7 @@ var Player = (function (_MovableObject) {
             this.bullets.createMultiple(5, 'bullet-1');
             this.bullets.forEach(function (bullet) {
                 bullet.anchor.setTo(0.5);
-                bullet.scale.setTo(0.9);
+                // bullet.scale.setTo(0.9);
                 bullet.smoothed = false;
                 bullet.checkWorldBounds = true;
                 bullet.outOfBoundsKill = true;
@@ -23204,7 +23252,9 @@ var Player = (function (_MovableObject) {
                 body1.sprite.kill();
                 body1.setZeroVelocity();
 
-                body2.sprite.addDamage(this.getShootPower());
+                if (body2.sprite) {
+                    body2.sprite.addDamage(this.getShootPower());
+                }
             }
         }
     }, {
@@ -23214,7 +23264,7 @@ var Player = (function (_MovableObject) {
                 this.nextFire = this.game.time.now + this.fireRate;
 
                 var bullet = this.bullets.getFirstDead();
-                bullet.reset(this.x - 25 * this.dir, this.y - 3);
+                bullet.reset(this.x - 25 * this.scale.x, this.y - 3);
 
                 var shootAngleDeg = Phaser.Math.radToDeg(this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed));
                 var shootInfo = {

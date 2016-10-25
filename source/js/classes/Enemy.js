@@ -12,14 +12,17 @@ export default class Enemy extends MovableObject{
         this.body.linearDamping = 5;
         this.body.setCollisionCategory(4);
 
-        this.moveStepDuration = 500;
+        this.moveStepDuration = 400;
 
         this.health = 25;
 
         this.game.events.onPlayerMoved.add(this.onPlayerMoved, this);
+        this.game.events.onGridTileDestroy.add(this.onGridTileDestroy, this);
+        this.game.events.onGridBlocked.add(this.onGridBlocked, this);
 
+        this.path = [];
         this.target = null;
-        this.targetMoved = false;
+        this.findNewPath = false;
     }
 
     update() {
@@ -30,10 +33,30 @@ export default class Enemy extends MovableObject{
         this.health -= damage;
 
         if(this.health <= 0) {
+            this.game.events.onGridBlocked.remove(this.onGridBlocked, this);
+            this.game.events.onPlayerMoved.remove(this.onPlayerMoved, this);
+
             this.game.events.onGridBlocked.dispatch(null, this.blockedGrid);
             this.game.events.onExplosion.dispatch(this.body.x, this.body.y, 1.5);
-            this.game.events.onPlayerMoved.remove(this.onPlayerMoved, this);
             this.destroy();
+        }
+    }
+
+    onGridBlocked(blocked, unblocked) {
+        const blockedStringify = JSON.stringify(blocked);
+        if(JSON.stringify(this.blockedGrid) !== blockedStringify) {
+            for(let i = 0; i < this.path.length; i++) {
+                if(JSON.stringify(this.path[i]) === blockedStringify) {
+                    this.findNewPath = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    onGridTileDestroy() {
+        if(this.target) {
+            this.findNewPath = true;
         }
     }
 
@@ -42,7 +65,7 @@ export default class Enemy extends MovableObject{
             this.target = player;
             this.setDestinationToGo(this.target.blockedGrid);
         } else {
-            this.targetMoved = true;
+            this.findNewPath = true;
         }
     }
 
@@ -57,6 +80,7 @@ export default class Enemy extends MovableObject{
     }
 
     goTo(path) {
+        this.path = path;
         let startPos = new Phaser.Point(this.body.x, this.body.y);
         let prevPathIndex = -1;
         let nextPos;
@@ -73,9 +97,12 @@ export default class Enemy extends MovableObject{
                 pathIndexProgress = pathProgress - pathIndex;
 
             if(pathIndex !== prevPathIndex) {
-                if(this.targetMoved) {
-                    this.targetMoved = false;
-                    this.setDestinationToGo(this.target.blockedGrid);
+                if(this.findNewPath) {
+                    this.findNewPath = false;
+
+                    if(this.target) {
+                        this.setDestinationToGo(this.target.blockedGrid);
+                    }
                 }
 
                 prevPathIndex = pathIndex;
@@ -95,6 +122,7 @@ export default class Enemy extends MovableObject{
 
         tweenHelper.onComplete = () => {
             this.target = null;
+            this.path = [];
         };
 
         this.game.tweens.remove(this.tweenMove);
