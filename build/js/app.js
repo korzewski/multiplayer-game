@@ -22121,12 +22121,14 @@ var Enemy = (function (_MovableObject) {
         this.body.linearDamping = 5;
         this.body.setCollisionCategory(4);
 
-        this.moveStepDuration = 700;
-
-        this.setTarget(11, 25);
-        this.pathCurrentIndex = 0;
+        this.moveStepDuration = 500;
 
         this.health = 25;
+
+        this.game.events.onPlayerMoved.add(this.onPlayerMoved, this);
+
+        this.target = null;
+        this.targetMoved = false;
     }
 
     _createClass(Enemy, [{
@@ -22142,16 +22144,31 @@ var Enemy = (function (_MovableObject) {
             if (this.health <= 0) {
                 this.game.events.onGridBlocked.dispatch(null, this.blockedGrid);
                 this.game.events.onExplosion.dispatch(this.body.x, this.body.y, 1.5);
+                this.game.events.onPlayerMoved.remove(this.onPlayerMoved, this);
                 this.destroy();
             }
         }
     }, {
-        key: 'setTarget',
-        value: function setTarget(targetX, targetY) {
+        key: 'onPlayerMoved',
+        value: function onPlayerMoved(player) {
+            if (!this.target) {
+                this.target = player;
+                this.setDestinationToGo(this.target.blockedGrid);
+            } else {
+                this.targetMoved = true;
+            }
+        }
+    }, {
+        key: 'setDestinationToGo',
+        value: function setDestinationToGo(targetGridPos) {
             var _this = this;
 
-            this.game.map.findPath(this.blockedGrid.x, this.blockedGrid.y, targetX, targetY, function (path) {
-                _this.goTo(path);
+            this.game.map.findPath(this.blockedGrid.x, this.blockedGrid.y, targetGridPos.x, targetGridPos.y, function (path) {
+                if (path && path.length && _this.game) {
+                    _this.goTo(path);
+                } else {
+                    _this.target = null;
+                }
             });
         }
     }, {
@@ -22160,11 +22177,11 @@ var Enemy = (function (_MovableObject) {
             var _this2 = this;
 
             var startPos = new Phaser.Point(this.body.x, this.body.y);
-            var prevPathIndex = 1;
+            var prevPathIndex = -1;
             var nextPos = undefined;
 
             var percentStep = 1 / (path.length - 1);
-            var tweenHelper = { progress: percentStep * prevPathIndex };
+            var tweenHelper = { progress: 0 };
             tweenHelper.onUpdate = function (tween, value) {
                 if (!_this2.game) {
                     return;
@@ -22175,6 +22192,11 @@ var Enemy = (function (_MovableObject) {
                     pathIndexProgress = pathProgress - pathIndex;
 
                 if (pathIndex !== prevPathIndex) {
+                    if (_this2.targetMoved) {
+                        _this2.targetMoved = false;
+                        _this2.setDestinationToGo(_this2.target.blockedGrid);
+                    }
+
                     prevPathIndex = pathIndex;
                     startPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex].x, path[pathIndex].y);
                     nextPos = _this2.game.map.getGridCenterPosInPx(path[pathIndex + 1].x, path[pathIndex + 1].y);
@@ -22190,8 +22212,15 @@ var Enemy = (function (_MovableObject) {
                 _this2.body.y = _this2.getPositionBetweenTwoPoints(startPos.y, nextPos.y, pathIndexProgress);
             };
 
-            var tween = this.game.add.tween(tweenHelper).to({ progress: 1 }, this.moveStepDuration * path.length).start();
-            tween.onUpdateCallback(tweenHelper.onUpdate);
+            tweenHelper.onComplete = function () {
+                _this2.target = null;
+            };
+
+            this.game.tweens.remove(this.tweenMove);
+
+            this.tweenMove = this.game.add.tween(tweenHelper).to({ progress: 1 }, this.moveStepDuration * path.length).start();
+            this.tweenMove.onUpdateCallback(tweenHelper.onUpdate);
+            this.tweenMove.onComplete.addOnce(tweenHelper.onComplete);
         }
     }, {
         key: 'getPositionBetweenTwoPoints',
@@ -22264,12 +22293,14 @@ var Game = (function (_Phaser$State) {
             // this.game.physics.startSystem(Phaser.Physics.ARCADE);
             this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
+            this.initEvents();
+
             this.game.map = new _Map2['default'](this.game, 'map-1');
 
             this.game.player = new _Player2['default'](this.game, 350, 350, 'dustBuster');
 
-            new _Enemy2['default'](this.game, 300, 150, 'dustBuster2');
-            new _Enemy2['default'](this.game, 350, 150, 'dustBuster2');
+            new _Enemy2['default'](this.game, 300, 200, 'dustBuster2');
+            new _Enemy2['default'](this.game, 350, 200, 'dustBuster2');
             new _Enemy2['default'](this.game, 0, 200, 'dustBuster2');
             new _Enemy2['default'](this.game, 350, 200, 'dustBuster2');
             new _Enemy2['default'](this.game, 500, 0, 'dustBuster2');
@@ -22289,13 +22320,18 @@ var Game = (function (_Phaser$State) {
             this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
             this.killsLabel.fixedToCamera = true;
             this.killsLabel.cameraOffset.setTo(10, 50);
-
+        }
+    }, {
+        key: 'initEvents',
+        value: function initEvents() {
             this.game.events.onUserConnected.add(this.onUserConnected, this);
             this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
             this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
 
             this.game.events.onExplosion = new Phaser.Signal();
             this.game.events.onExplosion.add(this.addExplosion, this);
+
+            this.game.events.onPlayerMoved = new Phaser.Signal();
         }
     }, {
         key: 'onUserConnected',
@@ -22781,7 +22817,6 @@ function setGrid(gridPos, value) {
 
     if (gridReady) {
         drawGrid.call(this);
-        this.findPath(0, 0, 10, 0);
     }
 }
 module.exports = exports['default'];
@@ -22826,7 +22861,7 @@ var MovableObject = (function (_Phaser$Sprite) {
 
     _createClass(MovableObject, [{
         key: "updateBlockedGrid",
-        value: function updateBlockedGrid(force) {
+        value: function updateBlockedGrid(force, isPlayer) {
             var isPlayerMoved = Math.abs(this.lastPosition.x - this.position.x) > minMoveDistance || Math.abs(this.lastPosition.y - this.position.y) > minMoveDistance;
 
             if (isPlayerMoved || force) {
@@ -22837,7 +22872,12 @@ var MovableObject = (function (_Phaser$Sprite) {
                 this.blockedGrid = { x: gridX, y: gridY };
 
                 if (this.blockedGrid.x !== this.lastBlockedGrid.x || this.blockedGrid.y !== this.lastBlockedGrid.y) {
-                    this.game.events.onGridBlocked.dispatch(this.blockedGrid, this.lastBlockedGrid);
+                    if (isPlayer) {
+                        this.game.events.onPlayerMoved.dispatch(this);
+                    } else {
+                        this.game.events.onGridBlocked.dispatch(this.blockedGrid, this.lastBlockedGrid);
+                    }
+
                     this.lastBlockedGrid = this.blockedGrid;
                 }
             }
@@ -23098,7 +23138,7 @@ var Player = (function (_MovableObject) {
                 this.body.velocity.y -= this.speed;
             }
 
-            this.updateBlockedGrid();
+            this.updateBlockedGrid(false, true);
             this.onlineUpdate();
         }
     }, {

@@ -59,7 +59,7 @@ export default class Player extends MovableObject{
             this.body.velocity.y -= this.speed;
         }
 
-        this.updateBlockedGrid();
+        this.updateBlockedGrid(false, true);
         this.onlineUpdate();
     }
 

@@ -13,12 +13,14 @@ export default class Game extends Phaser.State{
         // this.game.physics.startSystem(Phaser.Physics.ARCADE);
         this.game.physics.startSystem(Phaser.Physics.BOX2D);
 
+        this.initEvents();
+
         this.game.map = new Map(this.game, 'map-1');
 
         this.game.player = new Player(this.game, 350, 350, 'dustBuster');
 
-        new Enemy(this.game, 300, 150, 'dustBuster2');
-        new Enemy(this.game, 350, 150, 'dustBuster2');
+        new Enemy(this.game, 300, 200, 'dustBuster2');
+        new Enemy(this.game, 350, 200, 'dustBuster2');
         new Enemy(this.game, 0, 200, 'dustBuster2');
         new Enemy(this.game, 350, 200, 'dustBuster2');
         new Enemy(this.game, 500, 0, 'dustBuster2');
@@ -38,13 +40,17 @@ export default class Game extends Phaser.State{
         this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
         this.killsLabel.fixedToCamera = true;
         this.killsLabel.cameraOffset.setTo(10, 50);
+    }
 
+    initEvents() {
         this.game.events.onUserConnected.add(this.onUserConnected, this);
         this.game.events.onUserDataUpdate.add(this.onUserDataUpdate, this);
         this.game.events.onUserDisconnected.add(this.onUserDisconnected, this);
 
         this.game.events.onExplosion = new Phaser.Signal();
         this.game.events.onExplosion.add(this.addExplosion, this);
+
+        this.game.events.onPlayerMoved = new Phaser.Signal();
     }
 
     onUserConnected(connectedPlayer){

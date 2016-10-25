@@ -17,7 +17,7 @@ export default class MovableObject extends Phaser.Sprite{
         this.game.add.existing(this);
     }
 
-    updateBlockedGrid(force) {
+    updateBlockedGrid(force, isPlayer) {
     	const isPlayerMoved = (Math.abs(this.lastPosition.x - this.position.x) > minMoveDistance || Math.abs(this.lastPosition.y - this.position.y) >  minMoveDistance)
     	
     	if(isPlayerMoved || force) {
@@ -28,8 +28,13 @@ export default class MovableObject extends Phaser.Sprite{
 	        this.blockedGrid = {x: gridX, y: gridY};
 
 	        if((this.blockedGrid.x !== this.lastBlockedGrid.x) || (this.blockedGrid.y !== this.lastBlockedGrid.y)) {
-	            this.game.events.onGridBlocked.dispatch(this.blockedGrid, this.lastBlockedGrid);
-	            this.lastBlockedGrid = this.blockedGrid;
+                if(isPlayer) {
+                   this.game.events.onPlayerMoved.dispatch(this);
+                } else {
+                    this.game.events.onGridBlocked.dispatch(this.blockedGrid, this.lastBlockedGrid);
+                }
+
+                this.lastBlockedGrid = this.blockedGrid;
 	        }
         }
     }

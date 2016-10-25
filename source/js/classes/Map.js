@@ -173,6 +173,5 @@ function setGrid(gridPos, value) {
 
     if(gridReady) {
         drawGrid.call(this);
-        this.findPath(0, 0, 10, 0);
     }
 }
