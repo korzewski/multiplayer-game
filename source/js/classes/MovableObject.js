@@ -30,6 +30,7 @@ export default class MovableObject extends Phaser.Sprite{
 	        if((this.blockedGrid.x !== this.lastBlockedGrid.x) || (this.blockedGrid.y !== this.lastBlockedGrid.y)) {
                 if(isPlayer) {
                    this.game.events.onPlayerMoved.dispatch(this);
+                   // console.log('blockedGrid: ', this.blockedGrid);
                 } else {
                     this.game.events.onGridBlocked.dispatch(this.blockedGrid, this.lastBlockedGrid);
                 }

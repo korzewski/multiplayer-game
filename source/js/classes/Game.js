@@ -3,6 +3,7 @@ import Player from './Player';
 import Enemy from './Enemy';
 import PeerPlayer from './PeerPlayer';
 import Obstacle from './Obstacle';
+import UI from './UI';
 
 export default class Game extends Phaser.State{
     preload() {
@@ -17,7 +18,7 @@ export default class Game extends Phaser.State{
 
         this.game.map = new Map(this.game, 'map-1');
 
-        this.game.player = new Player(this.game, 350, 350, 'dustBuster');
+        this.game.player = new Player(this.game, 350, 800, 'dustBuster');
 
         new Enemy(this.game, 300, 200, 'dustBuster2');
         new Enemy(this.game, 350, 200, 'dustBuster2');
@@ -27,19 +28,20 @@ export default class Game extends Phaser.State{
         new Enemy(this.game, 800, 0, 'dustBuster2');
         new Enemy(this.game, 500, 500, 'dustBuster2');
 
-        this.scores = 0;
-        this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
-        this.scoresLabel = this.game.add.text(0, 0, 'scores: 0', this.textStyle);
-        this.scoresLabel.fixedToCamera = true;
-        this.scoresLabel.cameraOffset.setTo(10, 10);
+        new UI(this.game);
+        // this.scores = 0;
+        // this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
+        // this.scoresLabel = this.game.add.text(0, 0, 'scores: 0', this.textStyle);
+        // this.scoresLabel.fixedToCamera = true;
+        // this.scoresLabel.cameraOffset.setTo(10, 10);
 
-        this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.game.player.health, this.textStyle);
-        this.healthLabel.fixedToCamera = true;
-        this.healthLabel.cameraOffset.setTo(10, 30);
+        // this.healthLabel = this.game.add.text(0, 0, 'health: ' + this.game.player.health, this.textStyle);
+        // this.healthLabel.fixedToCamera = true;
+        // this.healthLabel.cameraOffset.setTo(10, 30);
 
-        this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
-        this.killsLabel.fixedToCamera = true;
-        this.killsLabel.cameraOffset.setTo(10, 50);
+        // this.killsLabel = this.game.add.text(0, 0, 'kills: ' + this.game.player.kills, this.textStyle);
+        // this.killsLabel.fixedToCamera = true;
+        // this.killsLabel.cameraOffset.setTo(10, 50);
     }
 
     initEvents() {
@@ -51,6 +53,9 @@ export default class Game extends Phaser.State{
         this.game.events.onExplosion.add(this.addExplosion, this);
 
         this.game.events.onPlayerMoved = new Phaser.Signal();
+        this.game.events.onPlayerDamage = new Phaser.Signal();
+        this.game.events.onPlayerDie = new Phaser.Signal();
+        this.game.events.onEnemyReachDestination = new Phaser.Signal();
     }
 
     onUserConnected(connectedPlayer){

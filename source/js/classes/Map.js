@@ -35,6 +35,14 @@ export default class Map extends Phaser.Sprite{
         this.game.events.onGridBlocked = new Phaser.Signal();
         this.game.events.onGridTileDestroy.add(onGridTileDestroy, this);
         this.game.events.onGridBlocked.add(onGridBlocked, this);
+
+        this.initTargets();
+    }
+
+    initTargets() {
+        this.targets = [{x: 18, y: 24}, {x: 6, y: 38}];
+
+        this.targets.forEach(target => drawRect.call(this, target.x, target.y, 0x000099));
     }
 
     getDetails() {
@@ -55,7 +63,7 @@ export default class Map extends Phaser.Sprite{
             if(callback) {
                 callback.call(this, path);
             }
-            drawPath.call(this, path);
+            // drawPath.call(this, path);
         });
         pathfinder.calculate();
     }
@@ -113,7 +121,7 @@ function initPathFinder() {
     pathfinder.setAcceptableTiles([0]);
 
     gridReady = true;
-    drawGrid.call(this);
+    // drawGrid.call(this);
 }
 
 function drawPath(path) {
@@ -172,6 +180,6 @@ function setGrid(gridPos, value) {
     grid[gridPos.y][gridPos.x] = value;
 
     if(gridReady) {
-        drawGrid.call(this);
+        // drawGrid.call(this);
     }
 }

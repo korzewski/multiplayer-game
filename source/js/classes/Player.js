@@ -15,7 +15,7 @@ export default class Player extends MovableObject{
 
         this.startPos = new Phaser.Point(posX, posY);
         this.cameraPointToFollow = new Phaser.Sprite(this.game);
-        this.aimCursor = this.game.add.sprite(0, 0, 'bullet-2');
+        this.aimCursor = this.game.add.sprite(-aimCursorRadius, 0, 'aim');
         this.aimCursor.anchor.setTo(0.5);
 
         this.addChild(this.cameraPointToFollow);
@@ -95,7 +95,7 @@ export default class Player extends MovableObject{
             cameraOffset = new Phaser.Point(0, -cameraOffsetValue);
         }
 
-        this.cameraPointToFollow.position = cameraOffset;
+        // this.cameraPointToFollow.position = cameraOffset;
         this.aimCursor.position = new Phaser.Point(Math.cos(angleRad) * aimCursorRadius * this.scale.x, Math.sin(angleRad) * aimCursorRadius);
     }
 
@@ -165,7 +165,7 @@ export default class Player extends MovableObject{
             this.nextFire = this.game.time.now + this.fireRate;
 
             let bullet = this.bullets.getFirstDead();
-            bullet.reset(this.x + this.aimCursor.x * this.scale.x, this.y + this.aimCursor.y);
+            bullet.reset(this.x + this.aimCursor.x/3 * this.scale.x, this.y + this.aimCursor.y/3);
 
             let shootAngleDeg = Phaser.Math.radToDeg( this.game.physics.arcade.moveToPointer(bullet, this.bulletSpeed) );
             let shootInfo = {
@@ -186,12 +186,21 @@ export default class Player extends MovableObject{
         this.kills++;
     }
 
-    addDamage(data, connectedPlayer){
-        this.health -= data.damage;
+    addDamage(damage){
+        this.health -= damage;
+        this.game.events.onPlayerDamage.dispatch(damage);
+
         if(this.health <= 0){
-            this.gameOver(connectedPlayer);
+            this.resetPlayer();
         }
     }
+
+    // addDamage(data, connectedPlayer){
+    //     this.health -= data.damage;
+    //     if(this.health <= 0){
+    //         this.gameOver(connectedPlayer);
+    //     }
+    // }
 
     gameOver(connectedPlayer){
         console.log('killed by: ', connectedPlayer);
@@ -203,16 +212,18 @@ export default class Player extends MovableObject{
     }
 
     resetPlayer() {
-        this.position.x = this.startPos.x;
-        this.position.y = this.startPos.y;
+        this.body.x = this.startPos.x;
+        this.body.y = this.startPos.y;
 
         this.initValues();
 
         this.game.manager.broadcast({
             type: 'position',
-            posX: parseInt(this.position.x),
-            posY: parseInt(this.position.y)
+            posX: parseInt(this.body.x),
+            posY: parseInt(this.body.y)
         });
+        
+        this.game.events.onPlayerDie.dispatch(this);
     }
 
     onlineUpdate(updatePositionRequest){
