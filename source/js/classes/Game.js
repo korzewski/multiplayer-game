@@ -4,6 +4,7 @@ import Enemy from './Enemy';
 import PeerPlayer from './PeerPlayer';
 import Obstacle from './Obstacle';
 import UI from './UI';
+import Light from './Light';
 
 export default class Game extends Phaser.State{
     preload() {
@@ -18,17 +19,18 @@ export default class Game extends Phaser.State{
 
         this.game.map = new Map(this.game, 'map-1');
 
-        this.game.player = new Player(this.game, 350, 800, 'dustBuster');
+        this.game.player = new Player(this.game, 250, 200, 'dustBuster');
 
-        new Enemy(this.game, 300, 200, 'dustBuster2');
-        new Enemy(this.game, 350, 200, 'dustBuster2');
-        new Enemy(this.game, 0, 200, 'dustBuster2');
-        new Enemy(this.game, 350, 200, 'dustBuster2');
-        new Enemy(this.game, 500, 0, 'dustBuster2');
-        new Enemy(this.game, 800, 0, 'dustBuster2');
-        new Enemy(this.game, 500, 500, 'dustBuster2');
+        // new Enemy(this.game, 300, 200, 'dustBuster2');
+        // new Enemy(this.game, 350, 200, 'dustBuster2');
+        // new Enemy(this.game, 0, 200, 'dustBuster2');
+        // new Enemy(this.game, 350, 200, 'dustBuster2');
+        // new Enemy(this.game, 500, 0, 'dustBuster2');
+        // new Enemy(this.game, 800, 0, 'dustBuster2');
+        // new Enemy(this.game, 500, 500, 'dustBuster2');
 
         new UI(this.game);
+        new Light(this.game);
         // this.scores = 0;
         // this.textStyle = { font: "bold 16px Arial", fill: "#fff", boundsAlignH: 'right', align: 'right'};
         // this.scoresLabel = this.game.add.text(0, 0, 'scores: 0', this.textStyle);
