@@ -79,10 +79,21 @@ export default class Map extends Phaser.Sprite{
 
     createBlockedTileObject(tile, destroyable) {
         const tilePos = {x: tile.x, y: tile.y};
-        const object = new Phaser.Physics.Box2D.Body(this.game, null, tilePos.x * cellSize + cellSize/2, tilePos.y * cellSize + cellSize/2);
+        const object = new Phaser.Physics.Box2D.Body(this.game, null, tilePos.x * cellSize, tilePos.y * cellSize);
         object.static = true;
-        object.setRectangle(cellSize, cellSize, 0, 0, 0);
         object.tilePos = tilePos;
+
+        if(tile.properties.shape) {
+            const shape = JSON.parse(tile.properties.shape);
+            object.setPolygon(shape);
+            object.shape = shape;
+        } else {
+            object.setRectangle(cellSize, cellSize, 0, 0, 0);
+            const offset = -cellSize/2;
+            object.x -= offset;
+            object.y -= offset;
+            object.shape = [offset, offset, offset, cellSize + offset, cellSize + offset, cellSize + offset, cellSize + offset, offset];
+        }
 
         if(destroyable) {
             object.setCollisionCategory(3);

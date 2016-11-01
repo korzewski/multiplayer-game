@@ -1,3 +1,6 @@
+let allLines = [];
+let allVertices = [];
+
 export default class Light extends Phaser.Sprite {
     constructor(game, posX, posY, spriteName, anchorPosition){
         super(game, posX, posY, spriteName);
@@ -7,24 +10,70 @@ export default class Light extends Phaser.Sprite {
         this.light = this.game.add.sprite(0, 0, 'bullet-2');
         this.light.anchor.setTo(0.5);
 
-        this.lightCanvas = this.game.add.bitmapData(this.game.camera.width, this.game.camera.height);
-        this.lightCanvas.context.fillStyle = 'rgb(255, 255, 255)';
-        this.lightCanvas.context.strokeStyle = 'rgb(255, 255, 255)';
+        this.shadowCanvas = this.game.add.bitmapData(this.game.camera.width, this.game.camera.height);
+        this.shadowCanvas.context.fillStyle = 'rgb(255, 255, 255)';
+        this.shadowCanvas.context.strokeStyle = 'rgb(255, 255, 255)';
 
-        const lightBitmap = this.game.add.image(0, 0, this.lightCanvas);
-        lightBitmap.blendMode = Phaser.blendModes.MULTIPLY;
+        const shadowBitmap = this.game.add.image(0, 0, this.shadowCanvas);
+        shadowBitmap.blendMode = Phaser.blendModes.MULTIPLY;
 
-        // this.game.player.mask = lightBitmap;
+        this.initVertices();
     }
 
     mousePosMove(pointer) {
         draw.call(this, pointer.position);
         this.light.position = pointer.position;
     }
+
+    initVertices() {
+        for(let i = 0; i < this.game.map.blockedObjects.length; i++) {
+            const object = this.game.map.blockedObjects[i];
+            let objectVertices = [];
+
+            for(let i = 0; i < object.shape.length; i += 2) {
+                const point = {x: object.shape[i] + object.x, y: object.shape[i + 1] + object.y};
+                objectVertices.push(point);
+                allVertices.push(point);
+            }
+
+            allLines = allLines.concat(generateLinesFromVertices(objectVertices));
+        }
+
+        const borderVertices = [{x: 0, y: 0}, {x: 0, y: 600}, {x: 1100, y: 600}, {x: 1100, y: 0}];
+
+        allVertices = allVertices.concat(borderVertices);
+        allLines = allLines.concat(generateLinesFromVertices(borderVertices));
+
+        console.log('allVertices: ', allVertices);
+        console.log('allLines: ', allLines);
+    }
+}
+
+
+function generateLinesFromVertices(verticesArray) {
+    let lines = [];
+
+    for(let i = 0; i < verticesArray.length; i++) {
+        const line = {a: {}, b: {}};
+        line.a.x = verticesArray[i].x;
+        line.a.y = verticesArray[i].y;
+        
+        if(i === verticesArray.length - 1) {
+            line.b.x = verticesArray[0].x;
+            line.b.y = verticesArray[0].y;
+        } else {
+            line.b.x = verticesArray[i + 1].x;
+            line.b.y = verticesArray[i + 1].y;
+        }
+
+        lines[lines.length] = line;
+    }
+
+    return lines;
 }
 
 // Find intersection of RAY & SEGMENT
-function getIntersection(ray,segment){
+function getIntersection(ray, segment){
 
     // RAY in parametric: Point + Delta*T1
     var r_px = ray.a.x;
@@ -68,35 +117,12 @@ function getIntersection(ray,segment){
 }
 
 function getSightPolygon(sightX, sightY){
-
-    // Get all unique points
-    var points = (function(segments){
-        var a = [];
-        segments.forEach(function(seg){
-            a.push(seg.a,seg.b);
-        });
-        return a;
-    })(segments);
-
-    var uniquePoints = (function(points){
-        var set = {};
-        return points.filter(function(p){
-            var key = p.x+","+p.y;
-            if(key in set){
-                return false;
-            }else{
-                set[key]=true;
-                return true;
-            }
-        });
-    })(points);
-
     // Get all angles
     var uniqueAngles = [];
-    for(var j=0;j<uniquePoints.length;j++){
-        var uniquePoint = uniquePoints[j];
-        var angle = Math.atan2(uniquePoint.y-sightY,uniquePoint.x-sightX);
-        uniquePoint.angle = angle;
+    for(var j = 0; j < allVertices.length; j++){
+        const vertice = allVertices[j];
+        var angle = Math.atan2(vertice.y - sightY, vertice.x - sightX);
+        vertice.angle = angle;
         uniqueAngles.push(angle-0.00001,angle,angle+0.00001);
     }
 
@@ -117,11 +143,11 @@ function getSightPolygon(sightX, sightY){
 
         // Find CLOSEST intersection
         var closestIntersect = null;
-        for(var i=0;i<segments.length;i++){
-            var intersect = getIntersection(ray,segments[i]);
+        for(var i = 0; i < allLines.length; i++){
+            var intersect = getIntersection(ray, allLines[i]);
             if(!intersect) continue;
-            if(!closestIntersect || intersect.param<closestIntersect.param){
-                closestIntersect=intersect;
+            if(!closestIntersect || intersect.param < closestIntersect.param){
+                closestIntersect = intersect;
             }
         }
 
@@ -131,7 +157,6 @@ function getSightPolygon(sightX, sightY){
 
         // Add to list of intersects
         intersects.push(closestIntersect);
-
     }
 
     // Sort intersects by angle
@@ -141,14 +166,10 @@ function getSightPolygon(sightX, sightY){
 
     // Polygon is intersects, in order of angle
     return intersects;
-
 }
 
-///////////////////////////////////////////////////////
-
-// DRAWING
 function draw(mousePos){
-    const ctx = this.lightCanvas.context;
+    const ctx = this.shadowCanvas.context;
 
     // Clear canvas
     ctx.clearRect(0,0,this.game.camera.width,this.game.camera.height);
@@ -158,11 +179,11 @@ function draw(mousePos){
 
     // Sight Polygons
     var fuzzyRadius = 10;
-    var polygons = [getSightPolygon(mousePos.x,mousePos.y)];
+    var polygons = [getSightPolygon(mousePos.x, mousePos.y)];
     for(var angle=0;angle<Math.PI*2;angle+=(Math.PI*2)/10){
         var dx = Math.cos(angle)*fuzzyRadius;
         var dy = Math.sin(angle)*fuzzyRadius;
-        polygons.push(getSightPolygon(mousePos.x+dx,mousePos.y+dy));
+        polygons.push(getSightPolygon(mousePos.x + dx, mousePos.y + dy));
     };
 
     // DRAW AS A GIANT POLYGON
@@ -182,47 +203,3 @@ function drawPolygon(polygon,ctx,fillStyle){
     }
     ctx.fill();
 }
-
-// LINE SEGMENTS
-var segments = [
-
-    // Border
-    {a:{x:0,y:0}, b:{x:840,y:0}},
-    {a:{x:840,y:0}, b:{x:840,y:360}},
-    {a:{x:840,y:360}, b:{x:0,y:360}},
-    {a:{x:0,y:360}, b:{x:0,y:0}},
-
-    // Polygon #1
-    {a:{x:100,y:150}, b:{x:120,y:50}},
-    {a:{x:120,y:50}, b:{x:200,y:80}},
-    {a:{x:200,y:80}, b:{x:140,y:210}},
-    {a:{x:140,y:210}, b:{x:100,y:150}},
-
-    // Polygon #2
-    {a:{x:100,y:200}, b:{x:120,y:250}},
-    {a:{x:120,y:250}, b:{x:60,y:300}},
-    {a:{x:60,y:300}, b:{x:100,y:200}},
-
-    // Polygon #3
-    {a:{x:200,y:260}, b:{x:220,y:150}},
-    {a:{x:220,y:150}, b:{x:300,y:200}},
-    {a:{x:300,y:200}, b:{x:350,y:320}},
-    {a:{x:350,y:320}, b:{x:200,y:260}},
-
-    // Polygon #4
-    {a:{x:540,y:60}, b:{x:560,y:40}},
-    {a:{x:560,y:40}, b:{x:570,y:70}},
-    {a:{x:570,y:70}, b:{x:540,y:60}},
-
-    // Polygon #5
-    {a:{x:650,y:190}, b:{x:760,y:170}},
-    {a:{x:760,y:170}, b:{x:740,y:270}},
-    {a:{x:740,y:270}, b:{x:630,y:290}},
-    {a:{x:630,y:290}, b:{x:650,y:190}},
-
-    // Polygon #6
-    {a:{x:600,y:95}, b:{x:780,y:50}},
-    {a:{x:780,y:50}, b:{x:680,y:150}},
-    {a:{x:680,y:150}, b:{x:600,y:95}}
-
-];

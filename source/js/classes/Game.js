@@ -111,7 +111,7 @@ export default class Game extends Phaser.State{
     }
 
     render() {
-        // this.game.debug.box2dWorld();
+        this.game.debug.box2dWorld();
         this.game.debug.text(this.game.time.fps || '--', 2, 14, "#00ff00"); 
     }
 
